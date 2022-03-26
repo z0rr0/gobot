@@ -94,12 +94,12 @@ func serve(c *config.Config) {
 			logInfo.Printf("taken signal %v", s)
 			return
 		case e := <-events:
-			logInfo.Printf("got event type=%v for chat=%v", e.Type, e.Payload.Chat.ID)
+			logInfo.Printf("[%s] got event type=%v for chat=%v", e.Payload.MsgID, e.Type, e.Payload.Chat.ID)
 			start := time.Now()
 			if skip, err := handle(c, &e); err != nil {
-				logError.Printf("error handling event: %v", err)
+				logError.Printf("[%s] error handling event: %v", e.Payload.MsgID, err)
 			} else {
-				logInfo.Printf("handled event in %v (skip=%v)", time.Since(start), skip)
+				logInfo.Printf("[%s] handled event in %v (skip=%v)", e.Payload.MsgID, time.Since(start), skip)
 			}
 		}
 	}
@@ -116,6 +116,7 @@ func handle(c *config.Config, event *botgolang.Event) (bool, error) {
 	if !ok {
 		return true, nil
 	}
+	logInfo.Printf("[%s] handling command --> %v", event.Payload.MsgID, msg)
 	return false, f(c, event)
 }
 
