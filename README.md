@@ -9,18 +9,12 @@
 ## Build
 
 ```shell
-go install .
-```
-
-### Test
-
-```
-go test -race -cover -v ./...
+make build
 ```
 
 ### Run
 
-Config example file is config.toml
+Config example file is [config.example.json](https://github.com/z0rr0/gobot/blob/main/config.example.json).
 
 ```shell
 ./gobot -config $COFIG_FILE
