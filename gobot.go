@@ -61,8 +61,9 @@ func main() {
 	cfg := flag.String("config", configFile, "configuration file")
 	flag.Parse()
 
+	versionInfo := fmt.Sprintf("%v: %v %v %v %v\n", Name, Version, Revision, GoVersion, BuildDate)
 	if *version {
-		fmt.Printf("%v: %v %v %v %v\n", Name, Version, Revision, GoVersion, BuildDate)
+		fmt.Println(versionInfo)
 		flag.PrintDefaults()
 		return
 	}
@@ -70,6 +71,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	logInfo.Printf("run %v", versionInfo)
 	serve(c)
 	logInfo.Printf("stopped %s", Name)
 }
