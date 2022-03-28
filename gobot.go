@@ -44,6 +44,7 @@ var (
 	// allowedCommands is commands for handling bot's actions
 	allowedCommands = map[string]func(*config.Config, *botgolang.Event) error{
 		"/go":      cmdGo,
+		"/shuffle": cmdGo, // alias for "/go"
 		"/version": cmdVersion,
 	}
 	botIDRegexp = regexp.MustCompile(`^\d+$`)
