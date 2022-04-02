@@ -64,7 +64,7 @@ func Get(ctx context.Context, db *sql.DB, id string) (*Chat, error) {
 // Upsert inserts or updates a chat, make it active.
 func (chat *Chat) Upsert(ctx context.Context, db *sql.DB) error {
 	const query = "INSERT INTO `chat` " +
-		"(`id`, `active`, `created`, `updated`)  VALUES (?,?,?,?) " +
+		"(`id`, `active`, `exclude`, `url`, `created`, `updated`)  VALUES (?,?,?,?,?,?) " +
 		"ON CONFLICT(id) DO UPDATE " +
 		"SET `active`=?, `updated`=?;"
 	return InTransaction(ctx, db, func(tx *sql.Tx) error {
@@ -73,9 +73,11 @@ func (chat *Chat) Upsert(ctx context.Context, db *sql.DB) error {
 			return fmt.Errorf("insert statement: %w", err)
 		}
 		now := time.Now().UTC()
-		_, err = tx.StmtContext(ctx, stmt).ExecContext(ctx, chat.ID, chat.Active, now, now, chat.Active, now)
+		_, err = tx.StmtContext(ctx, stmt).ExecContext(
+			ctx, chat.ID, chat.Active, chat.Exclude, chat.URL, now, now, chat.Active, now,
+		)
 		if err != nil {
-			return fmt.Errorf("insert exec: %w", err)
+			return fmt.Errorf("upsert exec: %w", err)
 		}
 		return nil
 	})

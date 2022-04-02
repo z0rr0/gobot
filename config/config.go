@@ -103,12 +103,27 @@ func (c *Config) touchChat(chat *db.Chat) error {
 
 // StartBot starts bot.
 func (c *Config) StartBot(event *botgolang.Event) error {
-	chat := db.Chat{ID: event.Payload.Chat.ID, Active: true}
-	return c.touchChat(&chat)
+	chat := &db.Chat{ID: event.Payload.Chat.ID, Active: true}
+	return c.touchChat(chat)
 }
 
 // StopBot stops bot.
 func (c *Config) StopBot(event *botgolang.Event) error {
-	chat := db.Chat{ID: event.Payload.Chat.ID, Active: false}
-	return c.touchChat(&chat)
+	chat := &db.Chat{ID: event.Payload.Chat.ID, Active: false}
+	return c.touchChat(chat)
+}
+
+// Chat returns chat by ID.
+func (c *Config) Chat(event *botgolang.Event) (*db.Chat, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+	defer cancel()
+	chat, err := db.Get(ctx, c.Db, event.Payload.Chat.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// unknown chat
+			return &db.Chat{ID: event.Payload.Chat.ID}, nil
+		}
+		return nil, fmt.Errorf("chat load: %w", err)
+	}
+	return chat, nil
 }

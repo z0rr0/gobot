@@ -45,6 +45,11 @@ var (
 		"/go":      cmd.Go,
 		"/shuffle": cmd.Go, // alias for "/go"
 		"/version": cmd.Version,
+		"/stop":    cmd.Stop,
+		"/start":   cmd.Start,
+	}
+	alwaysCommands = map[string]func(c cmd.Connector) error{
+		"/start": cmd.Start,
 	}
 	logError = log.New(os.Stderr, "ERROR ", log.Ldate|log.Ltime|log.Lshortfile)
 	logInfo  = log.New(os.Stdout, "INFO  ", log.LstdFlags)
@@ -99,27 +104,37 @@ func serve(c *config.Config) {
 		case e := <-events:
 			logInfo.Printf("[%s] got event type=%v for chat=%v", e.Payload.MsgID, e.Type, e.Payload.Chat.ID)
 			start := time.Now()
-			if skip, err := handle(c, &e); err != nil {
+			if handled, err := handle(c, &e); err != nil {
 				logError.Printf("[%s] error handling event: %v", e.Payload.MsgID, err)
 			} else {
-				logInfo.Printf("[%s] handled event in %v (skip=%v)", e.Payload.MsgID, time.Since(start), skip)
+				logInfo.Printf("[%s] handled event in %v (known=%v)", e.Payload.MsgID, time.Since(start), handled)
 			}
 		}
 	}
 }
 
 // handle is common handler for bot events.
-// The second boolean returned is true if the event was skipped.
+// The first boolean returned is true if the event was handled.
 func handle(c *config.Config, event *botgolang.Event) (bool, error) {
 	if !allowedEvents[event.Type] {
-		return true, nil
+		return false, nil
 	}
 	msg := strings.Trim(event.Payload.Text, " ")
 	f, ok := allowedCommands[msg]
 	if !ok {
-		return true, nil
+		return false, nil
 	}
-	connector := &cmd.BotConnector{Cfg: c, Event: event}
+	chat, err := c.Chat(event)
+	if err != nil {
+		return false, err
+	}
+	if !chat.Active {
+		if f, ok = alwaysCommands[msg]; ok {
+			logInfo.Printf("[%s] handling not ignored command --> %v", event.Payload.MsgID, msg)
+			return true, f(&cmd.BotConnector{Cfg: c, Event: event})
+		}
+		return false, nil
+	}
 	logInfo.Printf("[%s] handling command --> %v", event.Payload.MsgID, msg)
-	return false, f(connector)
+	return true, f(&cmd.BotConnector{Cfg: c, Event: event, Chat: chat})
 }

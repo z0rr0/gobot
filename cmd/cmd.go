@@ -9,6 +9,7 @@ import (
 	botgolang "github.com/mail-ru-im/bot-golang"
 
 	"github.com/z0rr0/gobot/config"
+	"github.com/z0rr0/gobot/db"
 )
 
 var (
@@ -17,9 +18,11 @@ var (
 
 // Connector is interface for bot actions.
 type Connector interface {
+	IsChat() bool
 	ChatMembers() ([]botgolang.ChatMember, error)
 	SendMessage(msg string) error
 	SendURLMessage(msg, txt, url string) error
+	GoURL() string
 	Version() *config.BuildInfo
 	Start() error
 	Stop() error
@@ -29,11 +32,17 @@ type Connector interface {
 type BotConnector struct {
 	Cfg   *config.Config
 	Event *botgolang.Event
+	Chat  *db.Chat
+}
+
+// IsChat returns true if event is chat event.
+func (bc *BotConnector) IsChat() bool {
+	return bc.Event.Payload.Chat.ID != bc.Event.Payload.From.ID
 }
 
 // ChatMembers returns list of chat members.
 func (bc *BotConnector) ChatMembers() ([]botgolang.ChatMember, error) {
-	return bc.Cfg.Bot.GetChatMembers(bc.Event.Payload.Chat.ID)
+	return bc.Cfg.Bot.GetChatMembers(bc.Chat.ID)
 }
 
 // SendMessage sends message to chat.
@@ -59,6 +68,9 @@ func (bc *BotConnector) Version() *config.BuildInfo {
 
 // Start starts bot.
 func (bc *BotConnector) Start() error {
+	if bc.Chat != nil && bc.Chat.Active {
+		return bc.SendMessage("already started")
+	}
 	err := bc.Cfg.StartBot(bc.Event)
 	if err != nil {
 		return fmt.Errorf("can't start bot: %v", err)
@@ -75,6 +87,11 @@ func (bc *BotConnector) Stop() error {
 	return bc.SendMessage("success")
 }
 
+// GoURL returns URL for go command.
+func (bc *BotConnector) GoURL() string {
+	return bc.Chat.URL
+}
+
 // Start starts bot.
 func Start(c Connector) error {
 	return c.Start()
@@ -82,11 +99,14 @@ func Start(c Connector) error {
 
 // Stop stops bot.
 func Stop(c Connector) error {
-	return c.Start()
+	return c.Stop()
 }
 
 // Go returns a list of chat members in random order.
 func Go(c Connector) error {
+	if !c.IsChat() {
+		return c.SendMessage("sorry, this command is available only for chat")
+	}
 	members, err := c.ChatMembers()
 	if err != nil {
 		return fmt.Errorf("can't get chat members: %v", err)
@@ -100,7 +120,11 @@ func Go(c Connector) error {
 	rand.Shuffle(len(names), func(i, j int) {
 		names[i], names[j] = names[j], names[i]
 	})
-	return c.SendMessage(strings.Join(names, "\n"))
+	msg := strings.Join(names, "\n")
+	if url := c.GoURL(); url != "" {
+		return c.SendURLMessage(msg, "📞 call", url)
+	}
+	return c.SendMessage(msg)
 }
 
 // Version returns bot version.
