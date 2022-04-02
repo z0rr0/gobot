@@ -2,7 +2,11 @@ module github.com/z0rr0/gobot
 
 go 1.18
 
-require github.com/mail-ru-im/bot-golang v0.0.0-20211108092618-949689d272c5
+require (
+	github.com/mail-ru-im/bot-golang v0.0.0-20211108092618-949689d272c5
+	github.com/mattn/go-sqlite3 v1.14.12
+	github.com/pelletier/go-toml v1.9.4
+)
 
 require (
 	github.com/hako/durafmt v0.0.0-20190612201238-650ed9f29a84 // indirect

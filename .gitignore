@@ -17,3 +17,5 @@
 gobot
 config.json
 gobot.csv
+config.toml
+db.sqlite

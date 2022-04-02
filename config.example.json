@@ -1,9 +1,0 @@
-{
-  "bot": {
-    "id": "123",
-    "nick": "goBot",
-    "token": "xxxx",
-    "url": "https://api.internal.myteam.mail.ru/bot/v1",
-    "debug": true
-  }
-}

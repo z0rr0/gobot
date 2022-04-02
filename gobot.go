@@ -5,10 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"os/signal"
-	"regexp"
 	"runtime"
 	"runtime/debug"
 	"strings"
@@ -17,6 +15,7 @@ import (
 
 	botgolang "github.com/mail-ru-im/bot-golang"
 
+	"github.com/z0rr0/gobot/cmd"
 	"github.com/z0rr0/gobot/config"
 )
 
@@ -24,7 +23,7 @@ const (
 	// Name is a program name.
 	Name = "goBot"
 	// configFile is default configuration file name.
-	configFile = "config.json"
+	configFile = "config.toml"
 )
 
 var (
@@ -42,14 +41,13 @@ var (
 		botgolang.EDITED_MESSAGE: true,
 	}
 	// allowedCommands is commands for handling bot's actions
-	allowedCommands = map[string]func(*config.Config, *botgolang.Event) error{
-		"/go":      cmdGo,
-		"/shuffle": cmdGo, // alias for "/go"
-		"/version": cmdVersion,
+	allowedCommands = map[string]func(c cmd.Connector) error{
+		"/go":      cmd.Go,
+		"/shuffle": cmd.Go, // alias for "/go"
+		"/version": cmd.Version,
 	}
-	botIDRegexp = regexp.MustCompile(`^\d+$`)
-	logError    = log.New(os.Stderr, "ERROR ", log.Ldate|log.Ltime|log.Lshortfile)
-	logInfo     = log.New(os.Stdout, "INFO  ", log.LstdFlags)
+	logError = log.New(os.Stderr, "ERROR ", log.Ldate|log.Ltime|log.Lshortfile)
+	logInfo  = log.New(os.Stdout, "INFO  ", log.LstdFlags)
 )
 
 func main() {
@@ -68,12 +66,16 @@ func main() {
 		flag.PrintDefaults()
 		return
 	}
-	c, err := config.New(*cfg)
+	buildInfo := &config.BuildInfo{Name: Name, Hash: Version, Revision: Revision, GoVersion: GoVersion, Date: BuildDate}
+	c, err := config.New(*cfg, buildInfo)
 	if err != nil {
 		panic(err)
 	}
 	logInfo.Printf("run %v", versionInfo)
 	serve(c)
+	if err = c.Close(); err != nil {
+		logError.Printf("can't close config: %v", err)
+	}
 	logInfo.Printf("stopped %s", Name)
 }
 
@@ -117,32 +119,7 @@ func handle(c *config.Config, event *botgolang.Event) (bool, error) {
 	if !ok {
 		return true, nil
 	}
+	connector := &cmd.BotConnector{Cfg: c, Event: event}
 	logInfo.Printf("[%s] handling command --> %v", event.Payload.MsgID, msg)
-	return false, f(c, event)
-}
-
-// cmdGo handles "/go" command.
-func cmdGo(c *config.Config, event *botgolang.Event) error {
-	members, err := c.Bot.GetChatMembers(event.Payload.Chat.ID)
-	if err != nil {
-		return fmt.Errorf("can't get chat members: %v", err)
-	}
-	names := make([]string, 0, len(members)-1)
-	for _, m := range members {
-		if !botIDRegexp.MatchString(m.User.ID) {
-			names = append(names, fmt.Sprintf("@[%s]", m.User.ID))
-		}
-	}
-	rand.Shuffle(len(names), func(i, j int) {
-		names[i], names[j] = names[j], names[i]
-	})
-	message := c.Bot.NewTextMessage(event.Payload.Chat.ID, strings.Join(names, "\n"))
-	return c.Bot.SendMessage(message)
-}
-
-// cmdVersion handles "/version" command.
-func cmdVersion(c *config.Config, event *botgolang.Event) error {
-	txt := fmt.Sprintf("%v %v\n%v, %v, %v UTC", Name, Version, Revision, GoVersion, BuildDate)
-	message := c.Bot.NewTextMessage(event.Payload.Chat.ID, txt)
-	return c.Bot.SendMessage(message)
+	return false, f(connector)
 }
