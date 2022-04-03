@@ -112,22 +112,14 @@ func (c *Config) SaveChat(chat *db.Chat) error {
 	return chat.Update(ctx, c.Db)
 }
 
-func (c *Config) upsertChat(chat *db.Chat) error {
-	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
-	defer cancel()
-	return chat.Upsert(ctx, c.Db)
-}
-
 // StartBot starts bot.
 func (c *Config) StartBot(event *botgolang.Event) error {
-	chat := &db.Chat{ID: event.Payload.Chat.ID, Active: true}
-	return c.upsertChat(chat)
+	return db.UpsertActive(c.Db, event.Payload.Chat.ID, true, c.timeout)
 }
 
 // StopBot stops bot.
 func (c *Config) StopBot(event *botgolang.Event) error {
-	chat := &db.Chat{ID: event.Payload.Chat.ID, Active: false}
-	return c.upsertChat(chat)
+	return db.UpsertActive(c.Db, event.Payload.Chat.ID, false, c.timeout)
 }
 
 // Chat returns chat by ID.

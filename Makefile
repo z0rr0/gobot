@@ -30,4 +30,5 @@ test:
 	go test -race -cover $(PWD)/...
 
 clean:
+	rm -f $(PWD)/$(TARGET)
 	find ./ -type f -name "*.out" -delete

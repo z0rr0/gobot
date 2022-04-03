@@ -15,7 +15,7 @@ import (
 var (
 	// botIDRegexp is a regexp detect UserID as a bot identifier.
 	botIDRegexp  = regexp.MustCompile(`^\d+$`)
-	userIDRegexp = regexp.MustCompile(`@\[([A-Za-z@.]+)\]`)
+	userIDRegexp = regexp.MustCompile(`@\[([A-Za-z@.]+)]`)
 )
 
 // Connector is interface for bot actions.
