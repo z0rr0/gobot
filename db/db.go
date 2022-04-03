@@ -7,16 +7,6 @@ import (
 	"time"
 )
 
-// Chat is a struct for chat's info.
-type Chat struct {
-	ID      string    `db:"id"`
-	Active  bool      `db:"active"`
-	Exclude string    `db:"exclude"`
-	URL     string    `db:"url"`
-	Created time.Time `db:"created_at"`
-	Updated time.Time `db:"updated_at"`
-}
-
 // InTransaction runs method `f` inside the database transaction and does commit or rollback.
 func InTransaction(ctx context.Context, db *sql.DB, f func(tx *sql.Tx) error) error {
 	tx, err := db.BeginTx(ctx, nil)
@@ -41,44 +31,34 @@ func InTransaction(ctx context.Context, db *sql.DB, f func(tx *sql.Tx) error) er
 
 // Get returns a chat's pointer by its ID.
 func Get(ctx context.Context, db *sql.DB, id string) (*Chat, error) {
-	const query = "SELECT `id`, `active`, `exclude`, `url` " +
-		"FROM `chat` " +
-		"WHERE `id`=? " +
-		"LIMIT 1;"
+	const query = "SELECT `id`, `active`, `exclude`, `url`, `created`, `updated` " +
+		"FROM `chat` WHERE `id`=? LIMIT 1;"
 	stmt, err := db.PrepareContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("exist statement: %w", err)
 	}
-	item := &Chat{}
-	err = stmt.QueryRowContext(ctx, id).Scan(&item.ID, &item.Active, &item.Exclude, &item.URL)
+	chat := &Chat{}
+	err = stmt.QueryRowContext(ctx, id).Scan(
+		&chat.ID, &chat.Active, &chat.Exclude, &chat.URL, &chat.Created, &chat.Updated,
+	)
 	if err != nil {
 		return nil, err
 	}
-	err = stmt.Close()
-	if err != nil {
+	if err = stmt.Close(); err != nil {
 		return nil, fmt.Errorf("close exist statement: %w", err)
 	}
-	return item, nil
+	if err = chat.ExcludeToMap(); err != nil {
+		return nil, err
+	}
+	return chat, nil
 }
 
-// Upsert inserts or updates a chat, make it active.
-func (chat *Chat) Upsert(ctx context.Context, db *sql.DB) error {
-	const query = "INSERT INTO `chat` " +
-		"(`id`, `active`, `exclude`, `url`, `created`, `updated`)  VALUES (?,?,?,?,?,?) " +
-		"ON CONFLICT(id) DO UPDATE " +
-		"SET `active`=?, `updated`=?;"
-	return InTransaction(ctx, db, func(tx *sql.Tx) error {
-		stmt, err := tx.PrepareContext(ctx, query)
-		if err != nil {
-			return fmt.Errorf("insert statement: %w", err)
-		}
-		now := time.Now().UTC()
-		_, err = tx.StmtContext(ctx, stmt).ExecContext(
-			ctx, chat.ID, chat.Active, chat.Exclude, chat.URL, now, now, chat.Active, now,
-		)
-		if err != nil {
-			return fmt.Errorf("upsert exec: %w", err)
-		}
-		return nil
-	})
+// UpsertActive updates the chat's active status.
+// It is used to create a new chat item.
+func UpsertActive(db *sql.DB, id string, active bool, timeout time.Duration) error {
+	var now = time.Now().UTC()
+	chat := &Chat{ID: id, Active: active, Created: now, Updated: now}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	return chat.Upsert(ctx, db)
 }

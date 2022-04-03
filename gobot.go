@@ -47,6 +47,7 @@ var (
 		"/version": cmd.Version,
 		"/stop":    cmd.Stop,
 		"/start":   cmd.Start,
+		"/exclude": cmd.Exclude,
 	}
 	alwaysCommands = map[string]func(c cmd.Connector) error{
 		"/start": cmd.Start,
@@ -72,7 +73,7 @@ func main() {
 		return
 	}
 	buildInfo := &config.BuildInfo{Name: Name, Hash: Version, Revision: Revision, GoVersion: GoVersion, Date: BuildDate}
-	c, err := config.New(*cfg, buildInfo)
+	c, err := config.New(*cfg, buildInfo, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -119,7 +120,8 @@ func handle(c *config.Config, event *botgolang.Event) (bool, error) {
 	if !allowedEvents[event.Type] {
 		return false, nil
 	}
-	msg := strings.Trim(event.Payload.Text, " ")
+	txt := strings.SplitN(event.Payload.Text, " ", 2)
+	msg := strings.Trim(txt[0], " ")
 	f, ok := allowedCommands[msg]
 	if !ok {
 		return false, nil
@@ -131,10 +133,10 @@ func handle(c *config.Config, event *botgolang.Event) (bool, error) {
 	if !chat.Active {
 		if f, ok = alwaysCommands[msg]; ok {
 			logInfo.Printf("[%s] handling not ignored command --> %v", event.Payload.MsgID, msg)
-			return true, f(&cmd.BotConnector{Cfg: c, Event: event})
+			return true, f(&cmd.BotConnector{Cfg: c, Event: event, Arguments: txt[1:]})
 		}
 		return false, nil
 	}
 	logInfo.Printf("[%s] handling command --> %v", event.Payload.MsgID, msg)
-	return true, f(&cmd.BotConnector{Cfg: c, Event: event, Chat: chat})
+	return true, f(&cmd.BotConnector{Cfg: c, Event: event, Chat: chat, Arguments: txt[1:]})
 }

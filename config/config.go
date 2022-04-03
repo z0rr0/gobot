@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -31,6 +32,7 @@ type Main struct {
 	Debug   bool   `toml:"debug"`
 	Storage string `toml:"storage"`
 	Timeout uint64 `toml:"timeout"`
+	Workers uint   `toml:"workers"`
 }
 
 // BuildInfo is a build information.
@@ -55,7 +57,7 @@ type Config struct {
 }
 
 // New returns new configuration.
-func New(fileName string, b *BuildInfo) (*Config, error) {
+func New(fileName string, b *BuildInfo, client *http.Client) (*Config, error) {
 	fullPath, err := filepath.Abs(strings.Trim(fileName, " "))
 	if err != nil {
 		return nil, fmt.Errorf("config file: %w", err)
@@ -72,7 +74,15 @@ func New(fileName string, b *BuildInfo) (*Config, error) {
 	if err = toml.Unmarshal(data, c); err != nil {
 		return nil, fmt.Errorf("config parsing: %w", err)
 	}
-	bot, err := botgolang.NewBot(c.BotSettings.Token, botgolang.BotDebug(c.M.Debug), botgolang.BotApiURL(c.BotSettings.ULR))
+	if client == nil {
+		client = http.DefaultClient
+	}
+	bot, err := botgolang.NewBot(
+		c.BotSettings.Token,
+		botgolang.BotDebug(c.M.Debug),
+		botgolang.BotApiURL(c.BotSettings.ULR),
+		botgolang.BotHTTPClient(*client),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("can not init bot: %w", err)
 	}
@@ -95,7 +105,14 @@ func (c *Config) Close() error {
 	return c.Db.Close()
 }
 
-func (c *Config) touchChat(chat *db.Chat) error {
+// SaveChat saves chat info.
+func (c *Config) SaveChat(chat *db.Chat) error {
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+	defer cancel()
+	return chat.Update(ctx, c.Db)
+}
+
+func (c *Config) upsertChat(chat *db.Chat) error {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 	return chat.Upsert(ctx, c.Db)
@@ -104,13 +121,13 @@ func (c *Config) touchChat(chat *db.Chat) error {
 // StartBot starts bot.
 func (c *Config) StartBot(event *botgolang.Event) error {
 	chat := &db.Chat{ID: event.Payload.Chat.ID, Active: true}
-	return c.touchChat(chat)
+	return c.upsertChat(chat)
 }
 
 // StopBot stops bot.
 func (c *Config) StopBot(event *botgolang.Event) error {
 	chat := &db.Chat{ID: event.Payload.Chat.ID, Active: false}
-	return c.touchChat(chat)
+	return c.upsertChat(chat)
 }
 
 // Chat returns chat by ID.

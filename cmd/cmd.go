@@ -13,26 +13,33 @@ import (
 )
 
 var (
-	botIDRegexp = regexp.MustCompile(`^\d+$`)
+	// botIDRegexp is a regexp detect UserID as a bot identifier.
+	botIDRegexp  = regexp.MustCompile(`^\d+$`)
+	userIDRegexp = regexp.MustCompile(`@\[([A-Za-z@.]+)\]`)
 )
 
 // Connector is interface for bot actions.
 type Connector interface {
 	IsChat() bool
+	IsActive() bool
 	ChatMembers() ([]botgolang.ChatMember, error)
+	IgnoredMembers() map[string]struct{}
 	SendMessage(msg string) error
 	SendURLMessage(msg, txt, url string) error
 	GoURL() string
 	Version() *config.BuildInfo
+	Args() []string
+	Ignore(map[string]struct{}) error
 	Start() error
 	Stop() error
 }
 
 // BotConnector is implementation of Connector interface.
 type BotConnector struct {
-	Cfg   *config.Config
-	Event *botgolang.Event
-	Chat  *db.Chat
+	Cfg       *config.Config
+	Event     *botgolang.Event
+	Chat      *db.Chat
+	Arguments []string
 }
 
 // IsChat returns true if event is chat event.
@@ -40,9 +47,19 @@ func (bc *BotConnector) IsChat() bool {
 	return bc.Event.Payload.Chat.ID != bc.Event.Payload.From.ID
 }
 
+// IsActive returns true if event is active event.
+func (bc *BotConnector) IsActive() bool {
+	return bc.Chat != nil && bc.Chat.Active
+}
+
 // ChatMembers returns list of chat members.
 func (bc *BotConnector) ChatMembers() ([]botgolang.ChatMember, error) {
 	return bc.Cfg.Bot.GetChatMembers(bc.Chat.ID)
+}
+
+// IgnoredMembers returns list of ignored users for the chat.
+func (bc *BotConnector) IgnoredMembers() map[string]struct{} {
+	return bc.Chat.ExcludeUsers
 }
 
 // SendMessage sends message to chat.
@@ -68,7 +85,7 @@ func (bc *BotConnector) Version() *config.BuildInfo {
 
 // Start starts bot.
 func (bc *BotConnector) Start() error {
-	if bc.Chat != nil && bc.Chat.Active {
+	if !bc.IsActive() {
 		return bc.SendMessage("already started")
 	}
 	err := bc.Cfg.StartBot(bc.Event)
@@ -92,6 +109,17 @@ func (bc *BotConnector) GoURL() string {
 	return bc.Chat.URL
 }
 
+// Args returns arguments for command.
+func (bc *BotConnector) Args() []string {
+	return bc.Arguments
+}
+
+// Ignore handles "ignore" command.
+func (bc *BotConnector) Ignore(users map[string]struct{}) error {
+	bc.Chat.AddExclude(users)
+	return bc.Cfg.SaveChat(bc.Chat)
+}
+
 // Start starts bot.
 func Start(c Connector) error {
 	return c.Start()
@@ -111,11 +139,18 @@ func Go(c Connector) error {
 	if err != nil {
 		return fmt.Errorf("can't get chat members: %v", err)
 	}
+	ignored := c.IgnoredMembers()
 	names := make([]string, 0, len(members)-1)
 	for _, m := range members {
+		if _, ok := ignored[m.User.ID]; ok {
+			continue
+		}
 		if !botIDRegexp.MatchString(m.User.ID) {
 			names = append(names, fmt.Sprintf("@[%s]", m.User.ID))
 		}
+	}
+	if len(names) == 0 {
+		return c.SendMessage("no users :(")
 	}
 	rand.Shuffle(len(names), func(i, j int) {
 		names[i], names[j] = names[j], names[i]
@@ -136,3 +171,27 @@ func Version(c Connector) error {
 	}
 	return c.SendURLMessage(msg, "sources", v.URL)
 }
+
+// Exclude adds users to ignore list.
+func Exclude(c Connector) error {
+	if !c.IsActive() {
+		return c.SendMessage("sorry, this command is available only for active chats")
+	}
+	args := strings.Join(c.Args(), " ")
+	found := userIDRegexp.FindAllStringSubmatch(args, -1)
+	users := make(map[string]struct{}, len(found))
+	for _, userInfo := range found {
+		if len(userInfo) != 2 {
+			continue
+		}
+		users[userInfo[1]] = struct{}{}
+	}
+	err := c.Ignore(users)
+	if err != nil {
+		return fmt.Errorf("can't handle exclude command: %v", err)
+	}
+	return c.SendMessage("success")
+}
+
+//func SetLink(c Connector) error {}
+//func UnIgnore(c Connector) error {}
