@@ -26,8 +26,8 @@ lint: check_fmt
 test:
 	rm -f $(TEST_DB)
 	cat $(PWD)/db.sql | sqlite3 $(TEST_DB)
-	#go test -v -cover -coverprofile=coverage.out -trace trace.out github.com/z0rr0/gobot/db
-	go test -race -cover $(PWD)/...
+	go test -v -race -cover -coverprofile=coverage.out -trace trace.out github.com/z0rr0/gobot/db
+	# go test -race -cover $(PWD)/...
 
 clean:
 	rm -f $(PWD)/$(TARGET)

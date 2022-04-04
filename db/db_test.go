@@ -149,55 +149,102 @@ func TestChat_Update(t *testing.T) {
 	}
 }
 
-func TestExclude(t *testing.T) {
-	const chatID = "TestExclude"
-	db, err := open()
-	if err != nil {
-		t.Fatalf("failed to open database: %s", err)
-	}
-	defer func() {
-		if e := db.Close(); e != nil {
-			t.Errorf("failed to close database: %s", e)
-		}
-	}()
+func TestChat_ExcludeToMap(t *testing.T) {
 	now := time.Now().UTC()
 	chat := Chat{
-		ID:      chatID,
+		ID:      "TestChat_ExcludeToMap",
 		Active:  true,
 		Exclude: "[\"user1\",\"user2\"]",
 		URL:     "https://github.com/",
 		Created: now,
 		Updated: now,
 	}
-	if err = chat.ExcludeToMap(); err != nil {
+	if err := chat.ExcludeToMap(); err != nil {
 		t.Fatalf("failed to load exlclude: %v", err)
 	}
 	expected := map[string]struct{}{"user1": {}, "user2": {}}
 	if !compareMap(chat.ExcludeUsers, expected) {
 		t.Fatalf("failed compare maps, current:\n%+v\n want\n%+v", chat.ExcludeUsers, expected)
 	}
+}
+
+func TestChat_ExcludeToString(t *testing.T) {
+	now := time.Now().UTC()
+	chat := Chat{
+		ID:           "TestChat_ExcludeToMap",
+		Active:       true,
+		Exclude:      "[\"user1\",\"user2\"]",
+		URL:          "https://github.com/",
+		Created:      now,
+		Updated:      now,
+		ExcludeUsers: map[string]struct{}{"user1": {}, "user2": {}},
+	}
 	chat.AddExclude(map[string]struct{}{"user0": {}})
-	expected = map[string]struct{}{"user0": {}, "user1": {}, "user2": {}}
+	expected := map[string]struct{}{"user0": {}, "user1": {}, "user2": {}}
 	if !compareMap(chat.ExcludeUsers, expected) {
 		t.Fatalf("failed compare maps, current:\n%+v\n want\n%+v", chat.ExcludeUsers, expected)
 	}
-	if err = chat.ExcludeToString(); err != nil {
+	if err := chat.ExcludeToString(); err != nil {
 		t.Errorf("failed convert exclude to string: %v", err)
 	}
 	expectedStr := "[\"user0\",\"user1\",\"user2\"]"
 	if chat.Exclude != expectedStr {
 		t.Errorf("failed compare exclude string, current '%v' expected '%v'", chat.Exclude, expectedStr)
 	}
-	// delete
-	chat.DelExclude("user2")
-	expected = map[string]struct{}{"user0": {}, "user1": {}}
+}
+
+func TestChat_AddExclude(t *testing.T) {
+	now := time.Now().UTC()
+	chat := Chat{
+		ID:      "TestChat_ExcludeToMap",
+		Active:  true,
+		URL:     "https://github.com/",
+		Created: now,
+		Updated: now,
+	}
+	chat.AddExclude(map[string]struct{}{"user0": {}, "user1": {}})
+	chat.AddExclude(map[string]struct{}{"user2": {}})
+	expected := map[string]struct{}{"user0": {}, "user1": {}, "user2": {}}
 	if !compareMap(chat.ExcludeUsers, expected) {
 		t.Fatalf("failed compare maps, current:\n%+v\n want\n%+v", chat.ExcludeUsers, expected)
 	}
-	if err = chat.ExcludeToString(); err != nil {
+	if err := chat.ExcludeToString(); err != nil {
 		t.Errorf("failed convert exclude to string: %v", err)
 	}
-	expectedStr = "[\"user0\",\"user1\"]"
+	expectedStr := "[\"user0\",\"user1\",\"user2\"]"
+	if chat.Exclude != expectedStr {
+		t.Errorf("failed compare exclude string, current '%v' expected '%v'", chat.Exclude, expectedStr)
+	}
+}
+
+func TestChat_DelExclude(t *testing.T) {
+	now := time.Now().UTC()
+	chat := Chat{
+		ID:      "TestChat_ExcludeToMap",
+		Active:  true,
+		URL:     "https://github.com/",
+		Created: now,
+		Updated: now,
+	}
+	chat.DelExclude("user2")
+	if chat.Exclude != "" {
+		t.Errorf("failed compare exclude string, current '%v' expected ''", chat.Exclude)
+	}
+	if chat.ExcludeUsers != nil {
+		t.Errorf("failed compare exclude users, current '%v' expected nil", chat.ExcludeUsers)
+	}
+	chat.Exclude = "[\"user0\",\"user1\",\"user2\"]"
+	chat.ExcludeUsers = map[string]struct{}{"user0": {}, "user1": {}, "user2": {}}
+	// delete some value
+	chat.DelExclude("user2")
+	expected := map[string]struct{}{"user0": {}, "user1": {}}
+	if !compareMap(chat.ExcludeUsers, expected) {
+		t.Fatalf("failed compare maps, current:\n%+v\n want\n%+v", chat.ExcludeUsers, expected)
+	}
+	if err := chat.ExcludeToString(); err != nil {
+		t.Errorf("failed convert exclude to string: %v", err)
+	}
+	expectedStr := "[\"user0\",\"user1\"]"
 	if chat.Exclude != expectedStr {
 		t.Errorf("failed compare exclude string, current '%v' expected '%v'", chat.Exclude, expectedStr)
 	}
