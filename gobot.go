@@ -17,6 +17,7 @@ import (
 
 	"github.com/z0rr0/gobot/cmd"
 	"github.com/z0rr0/gobot/config"
+	"github.com/z0rr0/gobot/db"
 )
 
 const (
@@ -41,7 +42,7 @@ var (
 		botgolang.EDITED_MESSAGE: true,
 	}
 	// allowedCommands is commands for handling bot's actions
-	allowedCommands = map[string]func(c cmd.Connector) error{
+	allowedCommands = map[string]func(context.Context, cmd.Connector) error{
 		"/go":      cmd.Go,
 		"/shuffle": cmd.Go, // alias for "/go"
 		"/version": cmd.Version,
@@ -49,7 +50,7 @@ var (
 		"/start":   cmd.Start,
 		"/exclude": cmd.Exclude,
 	}
-	alwaysCommands = map[string]func(c cmd.Connector) error{
+	notStoppedCommands = map[string]func(context.Context, cmd.Connector) error{
 		"/start": cmd.Start,
 	}
 	logError = log.New(os.Stderr, "ERROR ", log.Ldate|log.Ltime|log.Lshortfile)
@@ -120,23 +121,29 @@ func handle(c *config.Config, event *botgolang.Event) (bool, error) {
 	if !allowedEvents[event.Type] {
 		return false, nil
 	}
-	txt := strings.SplitN(event.Payload.Text, " ", 2)
-	msg := strings.Trim(txt[0], " ")
-	f, ok := allowedCommands[msg]
+	argsStr := strings.SplitN(event.Payload.Text, " ", 2)
+	msg := strings.Trim(argsStr[0], " ")
+	handler, ok := allowedCommands[msg]
 	if !ok {
 		return false, nil
 	}
-	chat, err := c.Chat(event)
+	ctx, cancel := c.Context()
+	defer cancel()
+
+	chat, err := db.GetOrCreate(ctx, c.Db, event.Payload.Chat.ID)
 	if err != nil {
 		return false, err
 	}
 	if !chat.Active {
-		if f, ok = alwaysCommands[msg]; ok {
-			logInfo.Printf("[%s] handling not ignored command --> %v", event.Payload.MsgID, msg)
-			return true, f(&cmd.BotConnector{Cfg: c, Event: event, Arguments: txt[1:]})
-		}
+		handler, ok = notStoppedCommands[msg]
+	}
+	if !ok {
 		return false, nil
 	}
-	logInfo.Printf("[%s] handling command --> %v", event.Payload.MsgID, msg)
-	return true, f(&cmd.BotConnector{Cfg: c, Event: event, Chat: chat, Arguments: txt[1:]})
+	args := ""
+	if len(argsStr) > 1 {
+		args = argsStr[1]
+	}
+	bc := &cmd.BotConnector{Cfg: c, Event: event, Chat: chat, Arguments: args}
+	return true, handler(ctx, bc)
 }

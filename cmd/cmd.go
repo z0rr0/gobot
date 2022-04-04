@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"regexp"
@@ -28,7 +29,7 @@ type Connector interface {
 	SendURLMessage(msg, txt, url string) error
 	GoURL() string
 	Version() *config.BuildInfo
-	Args() []string
+	Args() string
 	Ignore(map[string]struct{}) error
 	Start() error
 	Stop() error
@@ -39,7 +40,7 @@ type BotConnector struct {
 	Cfg       *config.Config
 	Event     *botgolang.Event
 	Chat      *db.Chat
-	Arguments []string
+	Arguments string
 }
 
 // IsChat returns true if event is chat event.
@@ -110,7 +111,7 @@ func (bc *BotConnector) GoURL() string {
 }
 
 // Args returns arguments for command.
-func (bc *BotConnector) Args() []string {
+func (bc *BotConnector) Args() string {
 	return bc.Arguments
 }
 
@@ -121,17 +122,17 @@ func (bc *BotConnector) Ignore(users map[string]struct{}) error {
 }
 
 // Start starts bot.
-func Start(c Connector) error {
+func Start(_ context.Context, c Connector) error {
 	return c.Start()
 }
 
 // Stop stops bot.
-func Stop(c Connector) error {
+func Stop(_ context.Context, c Connector) error {
 	return c.Stop()
 }
 
 // Go returns a list of chat members in random order.
-func Go(c Connector) error {
+func Go(_ context.Context, c Connector) error {
 	if !c.IsChat() {
 		return c.SendMessage("sorry, this command is available only for chat")
 	}
@@ -163,7 +164,7 @@ func Go(c Connector) error {
 }
 
 // Version returns bot version.
-func Version(c Connector) error {
+func Version(_ context.Context, c Connector) error {
 	v := c.Version()
 	msg := fmt.Sprintf("%v %v\n%v, %v, %v UTC", v.Name, v.Hash, v.Revision, v.GoVersion, v.Date)
 	if v.URL == "" {
@@ -173,12 +174,11 @@ func Version(c Connector) error {
 }
 
 // Exclude adds users to ignore list.
-func Exclude(c Connector) error {
+func Exclude(_ context.Context, c Connector) error {
 	if !c.IsActive() {
 		return c.SendMessage("sorry, this command is available only for active chats")
 	}
-	args := strings.Join(c.Args(), " ")
-	found := userIDRegexp.FindAllStringSubmatch(args, -1)
+	found := userIDRegexp.FindAllStringSubmatch(c.Args(), -1)
 	users := make(map[string]struct{}, len(found))
 	for _, userInfo := range found {
 		if len(userInfo) != 2 {

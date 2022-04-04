@@ -53,6 +53,19 @@ func Get(ctx context.Context, db *sql.DB, id string) (*Chat, error) {
 	return chat, nil
 }
 
+// GetOrCreate loads a chat by its ID or creates a new one but without saving it.
+func GetOrCreate(ctx context.Context, db *sql.DB, id string) (*Chat, error) {
+	chat, err := Get(ctx, db, id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// unknown chat
+			return &Chat{ID: id}, nil
+		}
+		return nil, fmt.Errorf("chat load: %w", err)
+	}
+	return chat, nil
+}
+
 // UpsertActive updates the chat's active status.
 // It is used to create a new chat item.
 func UpsertActive(db *sql.DB, id string, active bool, timeout time.Duration) error {

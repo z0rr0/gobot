@@ -105,6 +105,11 @@ func (c *Config) Close() error {
 	return c.Db.Close()
 }
 
+// Context returns context with timeout.
+func (c *Config) Context() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), c.timeout)
+}
+
 // SaveChat saves chat info.
 func (c *Config) SaveChat(chat *db.Chat) error {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
@@ -122,17 +127,17 @@ func (c *Config) StopBot(event *botgolang.Event) error {
 	return db.UpsertActive(c.Db, event.Payload.Chat.ID, false, c.timeout)
 }
 
-// Chat returns chat by ID.
-func (c *Config) Chat(event *botgolang.Event) (*db.Chat, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
-	defer cancel()
-	chat, err := db.Get(ctx, c.Db, event.Payload.Chat.ID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			// unknown chat
-			return &db.Chat{ID: event.Payload.Chat.ID}, nil
-		}
-		return nil, fmt.Errorf("chat load: %w", err)
-	}
-	return chat, nil
-}
+//// Chat returns chat by ID.
+//func (c *Config) Chat(event *botgolang.Event) (*db.Chat, error) {
+//	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+//	defer cancel()
+//	chat, err := db.Get(ctx, c.Db, event.Payload.Chat.ID)
+//	if err != nil {
+//		if err == sql.ErrNoRows {
+//			// unknown chat
+//			return &db.Chat{ID: event.Payload.Chat.ID}, nil
+//		}
+//		return nil, fmt.Errorf("chat load: %w", err)
+//	}
+//	return chat, nil
+//}

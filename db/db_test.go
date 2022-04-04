@@ -66,6 +66,53 @@ func TestGet(t *testing.T) {
 	}
 }
 
+func TestGetOrCreate(t *testing.T) {
+	const (
+		chatID          = "TestGetOrCreate"
+		chatIDNotExists = "TestGetOrCreateNotExists"
+	)
+	db, err := open()
+	if err != nil {
+		t.Fatalf("failed to open database: %s", err)
+	}
+	defer func() {
+		if e := db.Close(); e != nil {
+			t.Errorf("failed to close database: %s", e)
+		}
+	}()
+	ctx := context.Background()
+	now := time.Now().UTC()
+	chat := Chat{
+		ID:      chatID,
+		Active:  true,
+		Exclude: "[\"user1\",\"user2\"]",
+		URL:     "https://github.com/",
+		Created: now,
+		Updated: now,
+	}
+	if err = chat.Upsert(ctx, db); err != nil {
+		t.Fatalf("failed to upsert chat: %s", err)
+	}
+	chatNew, err := GetOrCreate(ctx, db, chatIDNotExists)
+	if err != nil {
+		t.Fatalf("failed to get or create chat: %s", err)
+	}
+	if chatNew.Active {
+		t.Error("got active chat")
+	}
+	_, err = Get(ctx, db, chatIDNotExists)
+	if err != sql.ErrNoRows {
+		t.Error("got chat want ErrNoRows")
+	}
+	chatNew, err = GetOrCreate(ctx, db, chatID)
+	if err != nil {
+		t.Fatalf("failed to get or create chat: %s", err)
+	}
+	if chatNew.ID != chat.ID {
+		t.Errorf("got chat %+v, want %+v", chatNew, chat)
+	}
+}
+
 func TestUpsertActive(t *testing.T) {
 	const chatID = "TestUpsertActive"
 	db, err := open()
