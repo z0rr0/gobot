@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -57,7 +58,7 @@ type Config struct {
 }
 
 // New returns new configuration.
-func New(fileName string, b *BuildInfo, client *http.Client) (*Config, error) {
+func New(fileName string, b *BuildInfo, server *httptest.Server) (*Config, error) {
 	fullPath, err := filepath.Abs(strings.Trim(fileName, " "))
 	if err != nil {
 		return nil, fmt.Errorf("config file: %w", err)
@@ -74,8 +75,10 @@ func New(fileName string, b *BuildInfo, client *http.Client) (*Config, error) {
 	if err = toml.Unmarshal(data, c); err != nil {
 		return nil, fmt.Errorf("config parsing: %w", err)
 	}
-	if client == nil {
-		client = http.DefaultClient
+	client := http.DefaultClient
+	if server != nil {
+		client = server.Client()
+		c.BotSettings.ULR = server.URL
 	}
 	bot, err := botgolang.NewBot(
 		c.BotSettings.Token,

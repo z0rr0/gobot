@@ -5,6 +5,8 @@ COMMIT=$(shell git log --oneline | head -1)
 VERSION=$(firstword $(COMMIT))
 FLAG=-X main.Version=$(TAG) -X main.Revision=git:$(VERSION) -X main.BuildDate=$(TS)
 TEST_DB=/tmp/gobot_db_test.sqlite
+TEST_CONFIG=/tmp/gobot_config_test.toml
+TEST_DB_REPLACED=$(shell echo $(TEST_DB) | sed -e 's/[\/&]/\\&/g')
 
 all: build
 
@@ -23,10 +25,14 @@ lint: check_fmt
 	golint -set_exit_status $(PWD)/...
 	golangci-lint run $(PWD)/...
 
-test:
-	rm -f $(TEST_DB)
+prepare:
+	rm -f $(TEST_DB) $(TEST_CONFIG)
 	cat $(PWD)/db.sql | sqlite3 $(TEST_DB)
-	go test -v -race -cover -coverprofile=coverage.out -trace trace.out github.com/z0rr0/gobot/db
+	cat $(PWD)/config.example.toml | sed -e "s/db.sqlite/$(TEST_DB_REPLACED)/g" > $(TEST_CONFIG)
+
+test: prepare
+	go test -v -race -cover -coverprofile=coverage.out -trace trace.out github.com/z0rr0/gobot/config
+	#go test -race -cover -coverprofile=coverage.out -trace trace.out github.com/z0rr0/gobot/db
 	# go test -race -cover $(PWD)/...
 
 clean:
