@@ -50,6 +50,8 @@ var (
 		"/shuffle": cmd.Go, // alias for "/go"
 		"/exclude": cmd.Exclude,
 		"/include": cmd.Include,
+		"/link":    cmd.Link,
+		"/reset":   cmd.ResetLink,
 	}
 	notStoppedCommands = map[string]func(context.Context, *cmd.Event) error{
 		"/start": cmd.Start,
@@ -59,6 +61,8 @@ var (
 		"/shuffle": true,
 		"/exclude": true,
 		"/include": true,
+		"/link":    true,
+		"/reset":   true,
 	}
 	logError = log.New(os.Stderr, "ERROR ", log.Ldate|log.Ltime|log.Lshortfile)
 	logInfo  = log.New(os.Stdout, "INFO  ", log.LstdFlags)

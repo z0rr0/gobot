@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"net/url"
 	"regexp"
 	"sort"
 	"strings"
@@ -216,4 +217,36 @@ func Include(ctx context.Context, e *Event) error {
 	return e.SendMessage("success")
 }
 
-//func Link(ctx context.Context, e Event) error {}
+// Link sets a link to call or returns current one.
+func Link(ctx context.Context, e *Event) error {
+	if e.Arguments == "" {
+		if e.Chat.URL == "" {
+			return e.SendMessage("no calling URL for this chat")
+		}
+		return e.SendMessage(e.Chat.URL)
+	}
+	u, err := url.Parse(e.Arguments)
+	if err != nil {
+		return err
+	}
+	if !u.IsAbs() {
+		return e.SendMessage("incorrect URL")
+	}
+	e.Chat.URL = u.String()
+	if err = e.Chat.Update(ctx, e.Cfg.DB); err != nil {
+		return err
+	}
+	return e.SendMessage("success")
+}
+
+// ResetLink removes link from chat.
+func ResetLink(ctx context.Context, e *Event) error {
+	if e.Chat.URL == "" {
+		return e.SendMessage("no calling URL for this chat")
+	}
+	e.Chat.URL = ""
+	if err := e.Chat.Update(ctx, e.Cfg.DB); err != nil {
+		return err
+	}
+	return e.SendMessage("success")
+}

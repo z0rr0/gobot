@@ -110,35 +110,3 @@ func (c *Config) Close() error {
 func (c *Config) Context() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), c.timeout)
 }
-
-//// SaveChat saves chat info.
-//func (c *Config) SaveChat(chat *db.Chat) error {
-//	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
-//	defer cancel()
-//	return chat.Update(ctx, c.DB)
-//}
-//
-//// StartBot starts bot.
-//func (c *Config) StartBot(event *botgolang.ChatEvent) error {
-//	return db.UpsertActive(c.DB, event.Payload.Chat.ID, true, c.timeout)
-//}
-//
-//// StopBot stops bot.
-//func (c *Config) StopBot(event *botgolang.ChatEvent) error {
-//	return db.UpsertActive(c.DB, event.Payload.Chat.ID, false, c.timeout)
-//}
-
-//// Chat returns chat by ID.
-//func (c *Config) Chat(event *botgolang.ChatEvent) (*db.Chat, error) {
-//	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
-//	defer cancel()
-//	chat, err := db.Get(ctx, c.DB, event.Payload.Chat.ID)
-//	if err != nil {
-//		if err == sql.ErrNoRows {
-//			// unknown chat
-//			return &db.Chat{ID: event.Payload.Chat.ID}, nil
-//		}
-//		return nil, fmt.Errorf("chat load: %w", err)
-//	}
-//	return chat, nil
-//}

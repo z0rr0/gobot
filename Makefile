@@ -8,6 +8,9 @@ TEST_DB=/tmp/gobot_db_test.sqlite
 TEST_CONFIG=/tmp/gobot_config_test.toml
 TEST_DB_REPLACED=$(shell echo $(TEST_DB) | sed -e 's/[\/&]/\\&/g')
 
+# coverage check
+# go tool cover -html=coverage.out
+
 all: build
 
 build:
@@ -23,7 +26,7 @@ check_fmt:
 lint: check_fmt
 	go vet $(PWD)/...
 	golint -set_exit_status $(PWD)/...
-	golangci-lint run $(PWD)/...
+	#golangci-lint run $(PWD)/...
 
 prepare:
 	rm -f $(TEST_DB) $(TEST_CONFIG)
@@ -31,10 +34,8 @@ prepare:
 	cat $(PWD)/config.example.toml | sed -e "s/db.sqlite/$(TEST_DB_REPLACED)/g" > $(TEST_CONFIG)
 
 test: prepare
-	go test -v -race -cover -coverprofile=coverage.out -trace trace.out github.com/z0rr0/gobot/cmd -run TestExclude
-	#go test -race -cover -coverprofile=coverage.out -trace trace.out github.com/z0rr0/gobot/config
-	#go test -race -cover -coverprofile=coverage.out -trace trace.out github.com/z0rr0/gobot/db
-	# go test -race -cover $(PWD)/...
+	# go test -race -cover -coverprofile=coverage.out -trace trace.out github.com/z0rr0/gobot/db
+	go test -race -cover $(PWD)/...
 
 clean:
 	rm -f $(PWD)/$(TARGET)

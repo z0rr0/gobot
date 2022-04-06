@@ -327,6 +327,188 @@ func TestExclude(t *testing.T) {
 	}
 }
 
+func TestInclude(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var url = strings.TrimRight(r.URL.Path, " /")
+		w.Header().Set("Content-Type", "application/json")
+		response := "{\"msgId\": \"7083436385855602743\", \"ok\": true}"
+		if url == "/chats/getMembers" {
+			response = "{\"members\": [{\"userId\": \"1001\"}, {\"creator\": true, \"userId\": \"user1@my.team\"}, " +
+				"{\"userId\": \"1001\"}, {\"creator\": false, \"userId\": \"user2@my.team\"}], \"ok\": true}"
+		}
+		_, err := fmt.Fprint(w, response)
+		if err != nil {
+			t.Error(err)
+		}
+	})
+	s := httptest.NewServer(handler)
+	defer s.Close()
+	c, err := config.New(configPath, buildInfo, s)
+	if err != nil {
+		t.Fatalf("config.New: %v", err)
+	}
+	defer func() {
+		if errCfg := c.Close(); errCfg != nil {
+			t.Error(errCfg)
+		}
+	}()
+	chat := &db.Chat{ID: "TestInclude"}
+	e := &Event{Cfg: c, ChatEvent: &botgolang.Event{}, Chat: chat, debug: true}
+	if err = Include(defaultCtx, e); err != nil {
+		t.Errorf("Exclude: %v", err)
+	}
+	// no users order guarantee, example "@[user1@my.team]\n@[user2@my.team]"
+	respMsg := e.buffer.String()
+	if !(len(respMsg) == 33 && strings.HasPrefix(respMsg, "@[user") && strings.HasSuffix(respMsg, "@my.team]")) {
+		t.Errorf("failed bot response='%s'", respMsg)
+	}
+	e.buffer.Reset()
+	// no excluded users
+	e.Arguments = "some value"
+	if err = Include(defaultCtx, e); err != nil {
+		t.Errorf("Include: %v", err)
+	}
+	expected := "success"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	e.buffer.Reset()
+	// there are excluded users, but failed argument
+	chat.ExcludeUsers = map[string]struct{}{"user1@my.team": {}, "user2@my.team": {}}
+	e.Arguments = "restore user2, ok?"
+	if err = Include(defaultCtx, e); err != nil {
+		t.Errorf("Include: %v", err)
+	}
+	expected = "no user IDs in arguments"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	e.buffer.Reset()
+	// delete from excluded users
+	chat.ExcludeUsers = map[string]struct{}{"user1@my.team": {}, "user2@my.team": {}}
+	e.Arguments = "restore @[user2@my.team], ok?"
+	if err = Include(defaultCtx, e); err != nil {
+		t.Errorf("Include: %v", err)
+	}
+	expected = "success"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	expectedExcluded := map[string]struct{}{"user1@my.team": {}}
+	if !compareSets(expectedExcluded, chat.ExcludeUsers) {
+		t.Error("failed compare excluded users")
+	}
+	expected = "[\"user1@my.team\"]"
+	if chat.Exclude != expected {
+		t.Errorf("failed chat.Exclude='%s', want='%s'", chat.Exclude, expected)
+	}
+}
+
+func TestLink(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := "{\"msgId\": \"7083436385855602743\", \"ok\": true}"
+		_, err := fmt.Fprint(w, response)
+		if err != nil {
+			t.Error(err)
+		}
+	})
+	s := httptest.NewServer(handler)
+	defer s.Close()
+	c, err := config.New(configPath, buildInfo, s)
+	if err != nil {
+		t.Fatalf("config.New: %v", err)
+	}
+	defer func() {
+		if errCfg := c.Close(); errCfg != nil {
+			t.Error(errCfg)
+		}
+	}()
+	chat := &db.Chat{ID: "TestLink"}
+	e := &Event{Cfg: c, ChatEvent: &botgolang.Event{}, Chat: chat, debug: true}
+	if err = Link(defaultCtx, e); err != nil {
+		t.Errorf("Link: %v", err)
+	}
+	expected := "no calling URL for this chat"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	e.buffer.Reset()
+	// chat has URL
+	chat.URL = "https://github.com/z0rr0/gobot"
+	if err = Link(defaultCtx, e); err != nil {
+		t.Errorf("Link: %v", err)
+	}
+	expected = "https://github.com/z0rr0/gobot"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	e.buffer.Reset()
+	// failed new URL
+	e.Arguments = "invalid url value"
+	if err = Link(defaultCtx, e); err != nil {
+		t.Errorf("Link: %v", err)
+	}
+	expected = "incorrect URL"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	e.buffer.Reset()
+	// set valid new URL
+	e.Arguments = "https://github.com/z0rr0/gobot"
+	if err = Link(defaultCtx, e); err != nil {
+		t.Errorf("Link: %v", err)
+	}
+	expected = "success"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+}
+
+func TestResetLink(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := "{\"msgId\": \"7083436385855602743\", \"ok\": true}"
+		_, err := fmt.Fprint(w, response)
+		if err != nil {
+			t.Error(err)
+		}
+	})
+	s := httptest.NewServer(handler)
+	defer s.Close()
+	c, err := config.New(configPath, buildInfo, s)
+	if err != nil {
+		t.Fatalf("config.New: %v", err)
+	}
+	defer func() {
+		if errCfg := c.Close(); errCfg != nil {
+			t.Error(errCfg)
+		}
+	}()
+	chat := &db.Chat{ID: "TestResetLink"}
+	e := &Event{Cfg: c, ChatEvent: &botgolang.Event{}, Chat: chat, debug: true}
+	if err = ResetLink(defaultCtx, e); err != nil {
+		t.Errorf("ResetLink: %v", err)
+	}
+	expected := "no calling URL for this chat"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	e.buffer.Reset()
+	// chat has URL
+	chat.URL = "https://github.com/z0rr0/gobot"
+	if err = ResetLink(defaultCtx, e); err != nil {
+		t.Errorf("ResetLink: %v", err)
+	}
+	expected = "success"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	if chat.URL != "" {
+		t.Errorf("failed chat.URL='%s', want empty", chat.URL)
+	}
+}
+
 func TestEvent_ArgsUserIDs(t *testing.T) {
 	cases := []struct {
 		name     string
