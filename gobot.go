@@ -42,16 +42,23 @@ var (
 		botgolang.EDITED_MESSAGE: true,
 	}
 	// allowedCommands is commands for handling bot's actions
-	allowedCommands = map[string]func(context.Context, cmd.Event) error{
+	allowedCommands = map[string]func(context.Context, *cmd.Event) error{
 		"/start":   cmd.Start,
 		"/stop":    cmd.Stop,
 		"/version": cmd.Version,
 		"/go":      cmd.Go,
 		"/shuffle": cmd.Go, // alias for "/go"
 		"/exclude": cmd.Exclude,
+		"/include": cmd.Include,
 	}
-	notStoppedCommands = map[string]func(context.Context, cmd.Event) error{
+	notStoppedCommands = map[string]func(context.Context, *cmd.Event) error{
 		"/start": cmd.Start,
+	}
+	onlyChatCommands = map[string]bool{
+		"/go":      true,
+		"/shuffle": true,
+		"/exclude": true,
+		"/include": true,
 	}
 	logError = log.New(os.Stderr, "ERROR ", log.Ldate|log.Ltime|log.Lshortfile)
 	logInfo  = log.New(os.Stdout, "INFO  ", log.LstdFlags)
@@ -122,20 +129,20 @@ func handle(c *config.Config, event *botgolang.Event) (bool, error) {
 		return false, nil
 	}
 	argsStr := strings.SplitN(event.Payload.Text, " ", 2)
-	msg := strings.Trim(argsStr[0], " ")
-	handler, ok := allowedCommands[msg]
+	cmdName := strings.Trim(argsStr[0], " ")
+	handler, ok := allowedCommands[cmdName]
 	if !ok {
 		return false, nil
 	}
 	ctx, cancel := c.Context()
 	defer cancel()
 
-	chat, err := db.GetOrCreate(ctx, c.Db, event.Payload.Chat.ID)
+	chat, err := db.GetOrCreate(ctx, c.DB, event.Payload.Chat.ID)
 	if err != nil {
 		return false, err
 	}
 	if !chat.Active {
-		handler, ok = notStoppedCommands[msg]
+		handler, ok = notStoppedCommands[cmdName]
 	}
 	if !ok {
 		return false, nil
@@ -144,6 +151,9 @@ func handle(c *config.Config, event *botgolang.Event) (bool, error) {
 	if len(argsStr) > 1 {
 		args = argsStr[1] // argsStr length is 1 on 2
 	}
-	bc := cmd.Event{Cfg: c, ChatEvent: event, Chat: chat, Arguments: args}
-	return true, handler(ctx, bc)
+	e := &cmd.Event{Cfg: c, ChatEvent: event, Chat: chat, Arguments: args, OnlyChat: onlyChatCommands[cmdName]}
+	if e.Unavailable() {
+		return false, e.SendMessage("sorry, this command is available only for chats")
+	}
+	return true, handler(ctx, e)
 }

@@ -18,6 +18,7 @@ type Chat struct {
 	Created      time.Time `db:"created_at"`
 	Updated      time.Time `db:"updated_at"`
 	ExcludeUsers map[string]struct{}
+	Saved        bool
 }
 
 // Equal returns true if the two chats are equal.
@@ -37,11 +38,13 @@ func (chat *Chat) AddExclude(userIDs map[string]struct{}) {
 }
 
 // DelExclude removes user from an exclude set.
-func (chat *Chat) DelExclude(userID string) {
+func (chat *Chat) DelExclude(userIDs map[string]struct{}) {
 	if chat.ExcludeUsers == nil {
 		return
 	}
-	delete(chat.ExcludeUsers, userID)
+	for userID := range userIDs {
+		delete(chat.ExcludeUsers, userID)
+	}
 }
 
 // ExcludeToString returns a string of exclude users set.
@@ -100,6 +103,7 @@ func (chat *Chat) Update(ctx context.Context, db *sql.DB) error {
 		if err != nil {
 			return fmt.Errorf("upsert exec: %w", err)
 		}
+		chat.Saved = true
 		return nil
 	})
 }
@@ -123,6 +127,7 @@ func (chat *Chat) Upsert(ctx context.Context, db *sql.DB) error {
 		if err != nil {
 			return fmt.Errorf("upsert exec: %w", err)
 		}
+		chat.Saved = true
 		return nil
 	})
 }

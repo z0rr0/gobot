@@ -50,7 +50,7 @@ type Config struct {
 	BotSettings Bot  `toml:"bot"`
 	M           Main `toml:"main"`
 	Bot         *botgolang.Bot
-	Db          *sql.DB
+	DB          *sql.DB
 	BuildInfo   *BuildInfo
 	timeout     time.Duration
 }
@@ -93,7 +93,7 @@ func New(fileName string, b *BuildInfo, server *httptest.Server) (*Config, error
 	}
 	b.URL = c.BotSettings.Src
 	c.timeout = time.Duration(c.M.Timeout) * time.Second
-	c.Db = database
+	c.DB = database
 	c.Bot = bot
 	c.BuildInfo = b
 	return c, nil
@@ -103,7 +103,7 @@ func New(fileName string, b *BuildInfo, server *httptest.Server) (*Config, error
 func (c *Config) Close() error {
 	c.Lock()
 	defer c.Unlock()
-	return c.Db.Close()
+	return c.DB.Close()
 }
 
 // Context returns context with timeout.
@@ -115,24 +115,24 @@ func (c *Config) Context() (context.Context, context.CancelFunc) {
 //func (c *Config) SaveChat(chat *db.Chat) error {
 //	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 //	defer cancel()
-//	return chat.Update(ctx, c.Db)
+//	return chat.Update(ctx, c.DB)
 //}
 //
 //// StartBot starts bot.
 //func (c *Config) StartBot(event *botgolang.ChatEvent) error {
-//	return db.UpsertActive(c.Db, event.Payload.Chat.ID, true, c.timeout)
+//	return db.UpsertActive(c.DB, event.Payload.Chat.ID, true, c.timeout)
 //}
 //
 //// StopBot stops bot.
 //func (c *Config) StopBot(event *botgolang.ChatEvent) error {
-//	return db.UpsertActive(c.Db, event.Payload.Chat.ID, false, c.timeout)
+//	return db.UpsertActive(c.DB, event.Payload.Chat.ID, false, c.timeout)
 //}
 
 //// Chat returns chat by ID.
 //func (c *Config) Chat(event *botgolang.ChatEvent) (*db.Chat, error) {
 //	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 //	defer cancel()
-//	chat, err := db.Get(ctx, c.Db, event.Payload.Chat.ID)
+//	chat, err := db.Get(ctx, c.DB, event.Payload.Chat.ID)
 //	if err != nil {
 //		if err == sql.ErrNoRows {
 //			// unknown chat

@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"math/rand"
 	"regexp"
+	"sort"
 	"strings"
 
 	botgolang "github.com/mail-ru-im/bot-golang"
@@ -14,9 +16,10 @@ import (
 )
 
 var (
-	// botIDRegexp is a regexp detect UserID as a bot identifier.
-	botIDRegexp  = regexp.MustCompile(`^\d+$`)
-	userIDRegexp = regexp.MustCompile(`@\[([A-Za-z@.]+)]`)
+	// botIDRegexp is a regexp to detect UserID as a bot identifier.
+	botIDRegexp = regexp.MustCompile(`^\d+$`)
+	// botIDRegexp is a regexp to find all UserIDs in arguments.
+	userIDRegexp = regexp.MustCompile(`@\[([0-9A-Za-z@.]+)]`)
 )
 
 // Event is implementation of Connector interface.
@@ -24,7 +27,23 @@ type Event struct {
 	Cfg       *config.Config
 	ChatEvent *botgolang.Event
 	Chat      *db.Chat
+	OnlyChat  bool
 	Arguments string
+	// only for testing
+	debug  bool
+	buffer *bytes.Buffer
+}
+
+func (e *Event) writeLog(msg string) error {
+	if !e.debug {
+		return nil
+	}
+	if e.buffer == nil {
+		e.buffer = bytes.NewBufferString(msg)
+		return nil
+	}
+	_, err := e.buffer.WriteString(msg)
+	return err
 }
 
 // IsChat returns true if event is chat event.
@@ -32,15 +51,26 @@ func (e *Event) IsChat() bool {
 	return e.ChatEvent.Payload.Chat.ID != e.ChatEvent.Payload.From.ID
 }
 
+// Unavailable returns true if event is unavailable.
+func (e *Event) Unavailable() bool {
+	return e.OnlyChat && !e.IsChat()
+}
+
 // SendMessage sends message to chat.
 func (e *Event) SendMessage(msg string) error {
-	message := e.Cfg.Bot.NewTextMessage(e.ChatEvent.Payload.Chat.ID, msg)
+	if err := e.writeLog(msg); err != nil {
+		return err
+	}
+	message := e.Cfg.Bot.NewTextMessage(e.Chat.ID, msg)
 	return e.Cfg.Bot.SendMessage(message)
 }
 
 // SendURLMessage sends message to chat with URL link.
 func (e *Event) SendURLMessage(msg, txt, url string) error {
-	message := e.Cfg.Bot.NewTextMessage(e.ChatEvent.Payload.Chat.ID, msg)
+	if err := e.writeLog(msg); err != nil {
+		return err
+	}
+	message := e.Cfg.Bot.NewTextMessage(e.Chat.ID, msg)
 	btn := botgolang.NewURLButton(txt, url)
 	keyboard := botgolang.NewKeyboard()
 	keyboard.AddRow(btn)
@@ -48,12 +78,30 @@ func (e *Event) SendURLMessage(msg, txt, url string) error {
 	return e.Cfg.Bot.SendMessage(message)
 }
 
+// ArgsUserIDs returns all UserIDs from arguments.
+func (e *Event) ArgsUserIDs() map[string]struct{} {
+	found := userIDRegexp.FindAllStringSubmatch(e.Arguments, -1)
+	n := len(found)
+	if n == 0 {
+		return nil
+	}
+	users := make(map[string]struct{}, n)
+	for _, userInfo := range found {
+		if len(userInfo) != 2 {
+			continue
+		}
+		users[userInfo[1]] = struct{}{}
+	}
+	return users
+}
+
 // Start starts bot.
-func Start(ctx context.Context, e Event) error {
+func Start(ctx context.Context, e *Event) error {
 	if e.Chat.Active {
 		return e.SendMessage("already started")
 	}
-	err := db.UpsertActive(ctx, e.Cfg.Db, e.ChatEvent.Payload.Chat.ID, true)
+	e.Chat.Active = true
+	err := e.Chat.Upsert(ctx, e.Cfg.DB)
 	if err != nil {
 		return err
 	}
@@ -61,11 +109,12 @@ func Start(ctx context.Context, e Event) error {
 }
 
 // Stop stops bot.
-func Stop(ctx context.Context, e Event) error {
+func Stop(ctx context.Context, e *Event) error {
 	if !e.Chat.Active {
 		return e.SendMessage("already stopped")
 	}
-	err := db.UpsertActive(ctx, e.Cfg.Db, e.ChatEvent.Payload.Chat.ID, false)
+	e.Chat.Active = false
+	err := e.Chat.Upsert(ctx, e.Cfg.DB)
 	if err != nil {
 		return err
 	}
@@ -73,10 +122,7 @@ func Stop(ctx context.Context, e Event) error {
 }
 
 // Go returns a list of chat members in random order.
-func Go(_ context.Context, e Event) error {
-	if !e.IsChat() {
-		return e.SendMessage("sorry, this command is available only for chats")
-	}
+func Go(_ context.Context, e *Event) error {
 	members, err := e.Cfg.Bot.GetChatMembers(e.Chat.ID)
 	if err != nil {
 		return fmt.Errorf("can't get chat members: %v", err)
@@ -104,7 +150,7 @@ func Go(_ context.Context, e Event) error {
 }
 
 // Version returns bot version.
-func Version(_ context.Context, e Event) error {
+func Version(_ context.Context, e *Event) error {
 	v := e.Cfg.BuildInfo
 	msg := fmt.Sprintf("%v %v\n%v, %v, %v UTC", v.Name, v.Hash, v.Revision, v.GoVersion, v.Date)
 	if v.URL == "" {
@@ -122,44 +168,52 @@ func (e *Event) getExclude() string {
 	for userID := range e.Chat.ExcludeUsers {
 		exclude = append(exclude, fmt.Sprintf("@[%s]", userID))
 	}
+	sort.Strings(exclude)
 	return strings.Join(exclude, "\n")
 }
 
 // setExclude sets exclude users from chat.
 func (e *Event) setExclude(ctx context.Context) error {
-	found := userIDRegexp.FindAllStringSubmatch(e.Arguments, -1)
-	n := len(found)
-	if n < 1 {
-		return e.SendMessage("no users found in arguments")
-	}
-	users := make(map[string]struct{}, n)
-	for _, userInfo := range found {
-		if len(userInfo) != 2 {
-			continue
-		}
-		users[userInfo[1]] = struct{}{}
+	users := e.ArgsUserIDs()
+	if len(users) == 0 {
+		return e.SendMessage("no user IDs in arguments")
 	}
 	e.Chat.AddExclude(users)
-	if err := e.Chat.Update(ctx, e.Cfg.Db); err != nil {
+	if err := e.Chat.Update(ctx, e.Cfg.DB); err != nil {
 		return fmt.Errorf("can't handle exclude command: %v", err)
 	}
 	return e.SendMessage("success")
 }
 
 // Exclude adds users to ignore list or returns them
-func Exclude(ctx context.Context, e Event) error {
-	if !e.IsChat() {
-		return e.SendMessage("sorry, this command is available only for chats")
-	}
+func Exclude(ctx context.Context, e *Event) error {
 	if e.Arguments == "" {
-		if excluded := e.getExclude(); excluded == "" {
+		excluded := e.getExclude()
+		if excluded == "" {
 			return e.SendMessage("no excluded users")
-		} else {
-			return e.SendMessage(excluded)
 		}
+		return e.SendMessage(excluded)
 	}
 	return e.setExclude(ctx)
 }
 
-//func SetLink(c Connector) error {}
-//func UnIgnore(c Connector) error {}
+// Include removes users from ignore list or shows all included ones.
+func Include(ctx context.Context, e *Event) error {
+	if e.Arguments == "" {
+		return Go(ctx, e)
+	}
+	if e.Chat.ExcludeUsers == nil {
+		return e.SendMessage("success") // empty exclude list
+	}
+	users := e.ArgsUserIDs()
+	if len(users) == 0 {
+		return e.SendMessage("no user IDs in arguments")
+	}
+	e.Chat.DelExclude(users)
+	if err := e.Chat.Update(ctx, e.Cfg.DB); err != nil {
+		return fmt.Errorf("can't handle include command: %v", err)
+	}
+	return e.SendMessage("success")
+}
+
+//func Link(ctx context.Context, e Event) error {}

@@ -113,8 +113,8 @@ func TestGetOrCreate(t *testing.T) {
 	}
 }
 
-func TestUpsertActive(t *testing.T) {
-	const chatID = "TestUpsertActive"
+func TestChat_Upsert(t *testing.T) {
+	const chatID = "TestChat_Upsert"
 	db, err := open()
 	if err != nil {
 		t.Fatalf("failed to open database: %s", err)
@@ -125,10 +125,11 @@ func TestUpsertActive(t *testing.T) {
 		}
 	}()
 	ctx := context.Background()
-	if err = UpsertActive(ctx, db, chatID, true); err != nil {
+	chat := &Chat{ID: chatID, Active: true}
+	if err = chat.Upsert(ctx, db); err != nil {
 		t.Fatalf("failed to upsert active chat: %s", err)
 	}
-	chat, err := Get(ctx, db, chatID)
+	chat, err = Get(ctx, db, chatID)
 	if err != nil {
 		t.Fatalf("failed to get chat: %s", err)
 	}
@@ -136,7 +137,8 @@ func TestUpsertActive(t *testing.T) {
 		t.Errorf("got chat %+v, want %+v", chat, Chat{ID: chatID, Active: true})
 	}
 	// reset active
-	if err = UpsertActive(ctx, db, chatID, false); err != nil {
+	chat.Active = false
+	if err = chat.Upsert(ctx, db); err != nil {
 		t.Fatalf("failed to upsert not active chat: %s", err)
 	}
 	chat, err = Get(ctx, db, chatID)
@@ -273,7 +275,7 @@ func TestChat_DelExclude(t *testing.T) {
 		Created: now,
 		Updated: now,
 	}
-	chat.DelExclude("user2")
+	chat.DelExclude(map[string]struct{}{"user2": {}})
 	if chat.Exclude != "" {
 		t.Errorf("failed compare exclude string, current '%v' expected ''", chat.Exclude)
 	}
@@ -283,7 +285,7 @@ func TestChat_DelExclude(t *testing.T) {
 	chat.Exclude = "[\"user0\",\"user1\",\"user2\"]"
 	chat.ExcludeUsers = map[string]struct{}{"user0": {}, "user1": {}, "user2": {}}
 	// delete some value
-	chat.DelExclude("user2")
+	chat.DelExclude(map[string]struct{}{"user2": {}})
 	expected := map[string]struct{}{"user0": {}, "user1": {}}
 	if !compareMap(chat.ExcludeUsers, expected) {
 		t.Fatalf("failed compare maps, current:\n%+v\n want\n%+v", chat.ExcludeUsers, expected)
