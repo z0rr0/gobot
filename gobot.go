@@ -120,7 +120,7 @@ func serve(c *config.Config) {
 			if handled, err := handle(c, &e); err != nil {
 				logError.Printf("[%s] error handling event: %v", e.Payload.MsgID, err)
 			} else {
-				logInfo.Printf("[%s] handled event in %v (known=%v)", e.Payload.MsgID, time.Since(start), handled)
+				logInfo.Printf("[%s] handled event in %v (handled=%v)", e.Payload.MsgID, time.Since(start), handled)
 			}
 		}
 	}
@@ -155,7 +155,9 @@ func handle(c *config.Config, event *botgolang.Event) (bool, error) {
 	if len(argsStr) > 1 {
 		args = argsStr[1] // argsStr length is 1 on 2
 	}
+
 	e := &cmd.Event{Cfg: c, ChatEvent: event, Chat: chat, Arguments: args, OnlyChat: onlyChatCommands[cmdName]}
+	logInfo.Printf("[%s] '%s' handling command --> %v", event.Payload.MsgID, chat.ID, cmdName)
 	if e.Unavailable() {
 		return false, e.SendMessage("sorry, this command is available only for chats")
 	}
