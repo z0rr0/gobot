@@ -157,7 +157,7 @@ func Version(_ context.Context, e *Event) error {
 	if v.URL == "" {
 		return e.SendMessage(msg)
 	}
-	return e.SendURLMessage(msg, "sources", v.URL)
+	return e.SendURLMessage(msg, "source code", v.URL)
 }
 
 // getExclude returns exclude users from chat.

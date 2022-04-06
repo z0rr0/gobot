@@ -17,7 +17,18 @@ make build
 Config example file is [config.example.json](https://github.com/z0rr0/gobot/blob/main/config.example.json).
 
 ```shell
-./gobot -config $COFIG_FILE
+./gobot -config <CONFIG>
+```
+
+### Commands
+
+```
+go - вернет участников чата в случайном порядке (алиас "/shuffle")
+version - покажет текущую версию бота
+link - добавит ссылку на звонок для чата (без параметров вернет текущую ссылку)
+reset - удалит ссылку на звонок для чата
+exclude - добавит пользователей из чата в список исключений (без параметров вернет список исключений)
+include - удалит указанных пользователей из списка исключений (без параметров работает как "/go")
 ```
 
 ## License
