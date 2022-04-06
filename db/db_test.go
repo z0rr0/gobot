@@ -125,7 +125,7 @@ func TestUpsertActive(t *testing.T) {
 		}
 	}()
 	ctx := context.Background()
-	if err = UpsertActive(db, chatID, true, time.Second); err != nil {
+	if err = UpsertActive(ctx, db, chatID, true); err != nil {
 		t.Fatalf("failed to upsert active chat: %s", err)
 	}
 	chat, err := Get(ctx, db, chatID)
@@ -136,7 +136,7 @@ func TestUpsertActive(t *testing.T) {
 		t.Errorf("got chat %+v, want %+v", chat, Chat{ID: chatID, Active: true})
 	}
 	// reset active
-	if err = UpsertActive(db, chatID, false, time.Second); err != nil {
+	if err = UpsertActive(ctx, db, chatID, false); err != nil {
 		t.Fatalf("failed to upsert not active chat: %s", err)
 	}
 	chat, err = Get(ctx, db, chatID)

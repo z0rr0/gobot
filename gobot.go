@@ -42,15 +42,15 @@ var (
 		botgolang.EDITED_MESSAGE: true,
 	}
 	// allowedCommands is commands for handling bot's actions
-	allowedCommands = map[string]func(context.Context, cmd.Connector) error{
+	allowedCommands = map[string]func(context.Context, cmd.Event) error{
+		"/start":   cmd.Start,
+		"/stop":    cmd.Stop,
+		"/version": cmd.Version,
 		"/go":      cmd.Go,
 		"/shuffle": cmd.Go, // alias for "/go"
-		"/version": cmd.Version,
-		"/stop":    cmd.Stop,
-		"/start":   cmd.Start,
 		"/exclude": cmd.Exclude,
 	}
-	notStoppedCommands = map[string]func(context.Context, cmd.Connector) error{
+	notStoppedCommands = map[string]func(context.Context, cmd.Event) error{
 		"/start": cmd.Start,
 	}
 	logError = log.New(os.Stderr, "ERROR ", log.Ldate|log.Ltime|log.Lshortfile)
@@ -142,8 +142,8 @@ func handle(c *config.Config, event *botgolang.Event) (bool, error) {
 	}
 	args := ""
 	if len(argsStr) > 1 {
-		args = argsStr[1]
+		args = argsStr[1] // argsStr length is 1 on 2
 	}
-	bc := &cmd.BotConnector{Cfg: c, Event: event, Chat: chat, Arguments: args}
+	bc := cmd.Event{Cfg: c, ChatEvent: event, Chat: chat, Arguments: args}
 	return true, handler(ctx, bc)
 }

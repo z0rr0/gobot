@@ -31,7 +31,7 @@ func TestNew(t *testing.T) {
 
 	_, err := New("/bad_name.toml", buildInfo, nil)
 	if err == nil {
-		t.Error("Expected error, got nil")
+		t.Error("expected error, got nil")
 	}
 	c, err := New(configPath, buildInfo, s)
 	if err != nil {

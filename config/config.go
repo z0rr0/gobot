@@ -15,8 +15,6 @@ import (
 	botgolang "github.com/mail-ru-im/bot-golang"
 	_ "github.com/mattn/go-sqlite3" // SQLite3 driver
 	"github.com/pelletier/go-toml"
-
-	"github.com/z0rr0/gobot/db"
 )
 
 // Bot contains base API configuration parameters.
@@ -113,25 +111,25 @@ func (c *Config) Context() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), c.timeout)
 }
 
-// SaveChat saves chat info.
-func (c *Config) SaveChat(chat *db.Chat) error {
-	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
-	defer cancel()
-	return chat.Update(ctx, c.Db)
-}
-
-// StartBot starts bot.
-func (c *Config) StartBot(event *botgolang.Event) error {
-	return db.UpsertActive(c.Db, event.Payload.Chat.ID, true, c.timeout)
-}
-
-// StopBot stops bot.
-func (c *Config) StopBot(event *botgolang.Event) error {
-	return db.UpsertActive(c.Db, event.Payload.Chat.ID, false, c.timeout)
-}
+//// SaveChat saves chat info.
+//func (c *Config) SaveChat(chat *db.Chat) error {
+//	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+//	defer cancel()
+//	return chat.Update(ctx, c.Db)
+//}
+//
+//// StartBot starts bot.
+//func (c *Config) StartBot(event *botgolang.ChatEvent) error {
+//	return db.UpsertActive(c.Db, event.Payload.Chat.ID, true, c.timeout)
+//}
+//
+//// StopBot stops bot.
+//func (c *Config) StopBot(event *botgolang.ChatEvent) error {
+//	return db.UpsertActive(c.Db, event.Payload.Chat.ID, false, c.timeout)
+//}
 
 //// Chat returns chat by ID.
-//func (c *Config) Chat(event *botgolang.Event) (*db.Chat, error) {
+//func (c *Config) Chat(event *botgolang.ChatEvent) (*db.Chat, error) {
 //	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 //	defer cancel()
 //	chat, err := db.Get(ctx, c.Db, event.Payload.Chat.ID)

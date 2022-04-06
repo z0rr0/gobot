@@ -68,10 +68,8 @@ func GetOrCreate(ctx context.Context, db *sql.DB, id string) (*Chat, error) {
 
 // UpsertActive updates the chat's active status.
 // It is used to create a new chat item.
-func UpsertActive(db *sql.DB, id string, active bool, timeout time.Duration) error {
+func UpsertActive(ctx context.Context, db *sql.DB, id string, active bool) error {
 	var now = time.Now().UTC()
 	chat := &Chat{ID: id, Active: active, Created: now, Updated: now}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
 	return chat.Upsert(ctx, db)
 }
