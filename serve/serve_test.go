@@ -131,7 +131,8 @@ func TestNew(t *testing.T) {
 	<-stop
 
 	sort.Strings(*b)
-	if result := strings.Join(*b, ";"); result != "a;b;c;d" {
-		t.Errorf("unexpected result: %s", result)
+	expected := strings.Join(arguments, ";")
+	if result := strings.Join(*b, ";"); result != expected {
+		t.Errorf("failed result=%s, expected=%s", result, expected)
 	}
 }
