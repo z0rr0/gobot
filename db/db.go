@@ -67,11 +67,3 @@ func GetOrCreate(ctx context.Context, db *sql.DB, id string) (*Chat, error) {
 	chat.Saved = true
 	return chat, nil
 }
-
-//// UpsertActive updates the chat's active status.
-//// It is used to create a new chat item.
-//func UpsertActive(ctx context.Context, db *sql.DB, id string, active bool) error {
-//	var now = time.Now().UTC()
-//	chat := &Chat{ID: id, Active: active, Created: now, Updated: now}
-//	return chat.Upsert(ctx, db)
-//}

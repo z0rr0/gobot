@@ -4,13 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"math/rand"
 	"net/url"
 	"regexp"
 	"sort"
 	"strings"
-	"sync"
 
 	botgolang "github.com/mail-ru-im/bot-golang"
 
@@ -24,38 +22,6 @@ var (
 	// botIDRegexp is a regexp to find all UserIDs in arguments.
 	userIDRegexp = regexp.MustCompile(`@\[([0-9A-Za-z@.]+)]`)
 )
-
-// Payload is a struct for events payload.
-type Payload struct {
-	Cfg      *config.Config
-	Event    *botgolang.Event
-	LogInfo  *log.Logger
-	LogError *log.Logger
-}
-
-// New creates new channels for events queue and stopping any handling.
-// A caller must close queue channel and waits stop one closing.
-func New(n int) (chan Payload, chan struct{}) {
-	var (
-		wg    sync.WaitGroup
-		stop  = make(chan struct{})
-		queue = make(chan Payload)
-	)
-	wg.Add(n)
-	for i := 0; i < n; i++ {
-		go func() {
-			for p := range queue {
-				fmt.Println(p)
-			}
-			wg.Done()
-		}()
-	}
-	go func() {
-		wg.Wait()
-		close(stop)
-	}()
-	return queue, stop
-}
 
 // Event is implementation of Connector interface.
 type Event struct {
