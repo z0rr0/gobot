@@ -23,7 +23,7 @@ var (
 		botgolang.NEW_MESSAGE:    true,
 		botgolang.EDITED_MESSAGE: true,
 	}
-	// allowedCommands is commands for handling bot's actions
+	// allowedCommands is commands for handling bots actions
 	allowedCommands = map[string]func(context.Context, *cmd.Event) error{
 		"/start":   cmd.Start,
 		"/stop":    cmd.Stop,

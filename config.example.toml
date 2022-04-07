@@ -2,6 +2,7 @@
 debug = true          # debug mode
 storage = "db.sqlite" # database file
 timeout = 5           # db operation timeout (seconds)
+workers = 2           # number of workers
 
 [bot]
 id = "123"
@@ -9,3 +10,7 @@ nick = "goBot"
 token = "xxx"
 url = "https://api.internal.myteam.mail.ru/bot/v1"
 src = "https://github.com/z0rr0/gobot"
+
+[log]
+pidfile = ""
+logfile = ""

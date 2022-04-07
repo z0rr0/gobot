@@ -42,7 +42,7 @@ func main() {
 	cfg := flag.String("config", configFile, "configuration file")
 	flag.Parse()
 
-	versionInfo := fmt.Sprintf("%v: %v %v %v %v\n", Name, Version, Revision, GoVersion, BuildDate)
+	versionInfo := fmt.Sprintf("%v: %v %v %v %v", Name, Version, Revision, GoVersion, BuildDate)
 	if *version {
 		fmt.Println(versionInfo)
 		flag.PrintDefaults()
@@ -53,9 +53,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	logInfo.Printf("run %v", versionInfo)
+	if c.L.Output != nil {
+		// custom logging in a file
+		logInfo.SetOutput(c.L.Output)
+		logError.SetOutput(c.L.Output)
+	}
+	logInfo.Printf("start process\n%v\nPID file: %s\nLOG file: %s", versionInfo, c.L.PidFile, c.L.LogFile)
 
-	p, stop := serve.New(2)
+	p, stop := serve.New(c.M.Workers)
 	serve.Run(c, p, logInfo, logError)
 	<-stop
 

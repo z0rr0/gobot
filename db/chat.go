@@ -49,7 +49,7 @@ func (chat *Chat) DelExclude(userIDs map[string]struct{}) {
 
 // ExcludeToString returns a string of exclude users set.
 func (chat *Chat) ExcludeToString() error {
-	if chat.ExcludeUsers == nil {
+	if len(chat.ExcludeUsers) == 0 {
 		chat.Exclude = ""
 		return nil
 	}
