@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"runtime"
 	"runtime/debug"
+	"syscall"
 
 	"github.com/z0rr0/gobot/config"
 	"github.com/z0rr0/gobot/serve"
@@ -60,10 +62,13 @@ func main() {
 	}
 	logInfo.Printf("start process\n%v\nPID file: %s\nLOG file: %s", versionInfo, c.L.PidFile, c.L.LogFile)
 
-	p, stop := serve.New(c.M.Workers)
-	serve.Run(c, p, logInfo, logError)
-	<-stop
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, os.Interrupt, os.Signal(syscall.SIGTERM), os.Signal(syscall.SIGQUIT))
+	defer close(sigint)
 
+	p, stop := serve.New(c.M.Workers)
+	serve.Run(c, p, sigint, logInfo, logError)
+	<-stop
 	if err = c.Close(); err != nil {
 		logError.Printf("can't close config: %v", err)
 	}

@@ -4,10 +4,8 @@ import (
 	"context"
 	"log"
 	"os"
-	"os/signal"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	botgolang "github.com/mail-ru-im/bot-golang"
@@ -134,18 +132,18 @@ func New(n int) (chan Payload, chan struct{}) {
 }
 
 // Run starts main service process.
-func Run(c *config.Config, p chan<- Payload, logInfo, logError *log.Logger) {
+func Run(c *config.Config, p chan<- Payload, sigint <-chan os.Signal, logInfo, logError *log.Logger) {
 	var (
-		sigint      = make(chan os.Signal, 1)
+		//sigint      = make(chan os.Signal, 1)
 		ctx, cancel = context.WithCancel(context.Background())
 		events      = c.Bot.GetUpdatesChannel(ctx)
 	)
 	defer func() {
 		close(p)
-		close(sigint)
+		//close(sigint)
 		cancel()
 	}()
-	signal.Notify(sigint, os.Interrupt, os.Signal(syscall.SIGTERM), os.Signal(syscall.SIGQUIT))
+	//signal.Notify(sigint, os.Interrupt, os.Signal(syscall.SIGTERM), os.Signal(syscall.SIGQUIT))
 	for {
 		select {
 		case s := <-sigint:

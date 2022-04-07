@@ -34,8 +34,8 @@ prepare:
 	cat $(PWD)/config.example.toml | sed -e "s/db.sqlite/$(TEST_DB_REPLACED)/g" > $(TEST_CONFIG)
 
 test: lint prepare
-	 go test -v -race -cover -coverprofile=coverage.out -trace trace.out github.com/z0rr0/gobot/serve
-	#go test -race -cover $(PWD)/...
+	# go test -v -race -cover -coverprofile=coverage.out -trace trace.out github.com/z0rr0/gobot/serve
+	go test -race -cover $(PWD)/...
 
 clean:
 	rm -f $(PWD)/$(TARGET)
