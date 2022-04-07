@@ -37,6 +37,9 @@ test: lint prepare
 	# go test -v -race -cover -coverprofile=coverage.out -trace trace.out github.com/z0rr0/gobot/serve
 	go test -race -cover $(PWD)/...
 
+gh: prepare
+	go test -race -cover $(PWD)/...
+
 clean:
 	rm -f $(PWD)/$(TARGET)
 	find ./ -type f -name "*.out" -delete
