@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	botgolang "github.com/mail-ru-im/bot-golang"
 
@@ -22,6 +23,11 @@ var (
 	// botIDRegexp is a regexp to find all UserIDs in arguments.
 	userIDRegexp = regexp.MustCompile(`@\[([0-9A-Za-z@.]+)]`)
 )
+
+// init sets default random source to don't repeat the same random behavior after restart.
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 // Event is implementation of Connector interface.
 type Event struct {
