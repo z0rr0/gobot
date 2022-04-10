@@ -33,10 +33,8 @@ var (
 		"/link":    cmd.Link,
 		"/reset":   cmd.ResetLink,
 	}
-	notStoppedCommands = map[string]func(context.Context, *cmd.Event) error{
-		"/start": cmd.Start,
-	}
-	onlyChatCommands = map[string]bool{
+	notStoppedCommands = map[string]bool{"/start": true}
+	onlyChatCommands   = map[string]bool{
 		"/go":      true,
 		"/shuffle": true,
 		"/exclude": true,
@@ -78,10 +76,7 @@ func handle(p Payload) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if !chat.Active {
-		handler, ok = notStoppedCommands[cmdName]
-	}
-	if !ok {
+	if !chat.Active && !notStoppedCommands[cmdName] {
 		return false, nil
 	}
 	args := ""

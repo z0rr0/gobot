@@ -52,7 +52,7 @@ func patchHandlers(name string) *[]string {
 	}
 	cmdMutex.Lock()
 	allowedCommands[name] = f
-	notStoppedCommands[name] = f
+	notStoppedCommands[name] = true
 	cmdMutex.Unlock()
 	return &b
 }
