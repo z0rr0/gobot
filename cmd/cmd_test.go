@@ -551,3 +551,30 @@ func TestEvent_ArgsUserIDs(t *testing.T) {
 		})
 	}
 }
+
+func FuzzEventArgsUserIDs(f *testing.F) {
+	cases := []string{
+		"",
+		" ",
+		"some value",
+		" @[user2@my.team] other ignored",
+		" @[user2@my.team], @[user2@my.team]; @[user2@my.team]",
+		"user2@my.team other ignored",
+	}
+	for _, c := range cases {
+		f.Add(c)
+	}
+	f.Fuzz(func(t *testing.T, orig string) {
+		e := &Event{Arguments: orig}
+		result := e.ArgsUserIDs()
+		for userID := range result {
+			if len(userID) == 0 {
+				t.Error("failed len")
+			}
+			userName := fmt.Sprintf("@[%s]", userID)
+			if !strings.Contains(orig, userName) {
+				t.Error("no username")
+			}
+		}
+	})
+}

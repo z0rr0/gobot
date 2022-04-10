@@ -40,6 +40,9 @@ test: lint prepare
 gh: prepare
 	go test -race -cover $(PWD)/...
 
+fuzz:
+	go test -fuzz=Fuzz -fuzztime 20s github.com/z0rr0/gobot/cmd
+
 clean:
 	rm -f $(PWD)/$(TARGET)
 	find ./ -type f -name "*.out" -delete
