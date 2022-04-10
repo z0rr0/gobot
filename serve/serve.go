@@ -33,8 +33,10 @@ var (
 		"/link":    cmd.Link,
 		"/reset":   cmd.ResetLink,
 	}
+	// notSupportedCommands is commands which can't be stopped
 	notStoppedCommands = map[string]bool{"/start": true}
-	onlyChatCommands   = map[string]bool{
+	// onlyChatCommands is commands which can be used only for chats
+	onlyChatCommands = map[string]bool{
 		"/go":      true,
 		"/shuffle": true,
 		"/exclude": true,
@@ -99,7 +101,7 @@ func handle(p Payload) (bool, error) {
 
 // New creates new channels for events queue and stopping any handling.
 // A caller must close queue channel and waits stop one closing.
-func New(n int) (chan Payload, chan struct{}) {
+func New(n int) (chan<- Payload, <-chan struct{}) {
 	var (
 		wg    sync.WaitGroup
 		stop  = make(chan struct{})
