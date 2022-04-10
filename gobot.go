@@ -69,8 +69,8 @@ func main() {
 	p, stop := serve.New(c.M.Workers)
 	serve.Run(c, p, sigint, logInfo, logError)
 	<-stop
-	if err = c.Close(); err != nil {
-		logError.Printf("can't close config: %v", err)
-	}
 	logInfo.Printf("stopped %s", Name)
+	if err = c.Close(); err != nil {
+		log.Fatalf("can't close config: %v", err)
+	}
 }
