@@ -1,12 +1,14 @@
 TARGET=gobot
 TS=$(shell date -u +"%F_%T")
-TAG=$(shell git tag | sort --version-sort | tail -1)
+TAG=$(shell git tag | sort -V | tail -1)
 COMMIT=$(shell git log --oneline | head -1)
 VERSION=$(firstword $(COMMIT))
 FLAG=-X main.Version=$(TAG) -X main.Revision=git:$(VERSION) -X main.BuildDate=$(TS)
 TEST_DB=/tmp/gobot_db_test.sqlite
 TEST_CONFIG=/tmp/gobot_config_test.toml
 TEST_DB_REPLACED=$(shell echo $(TEST_DB) | sed -e 's/[\/&]/\\&/g')
+CONTAINER=docker/container_build.sh
+DOCKER_TAG=z0rr0/gobot
 
 # coverage check
 # go tool cover -html=coverage.out
@@ -42,6 +44,10 @@ gh: prepare
 
 fuzz:
 	go test -fuzz=Fuzz -fuzztime 20s github.com/z0rr0/gobot/cmd
+
+docker: lint clean
+	bash $(CONTAINER) "$(PWD)" "$(FLAG)"
+	docker build -t $(DOCKER_TAG) .
 
 clean:
 	rm -f $(PWD)/$(TARGET)
