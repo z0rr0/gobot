@@ -16,8 +16,16 @@ make build
 
 Config example file is [config.example.json](https://github.com/z0rr0/gobot/blob/main/config.example.json).
 
+Local:
+
 ```shell
 ./gobot -config <CONFIG>
+```
+
+Docker:
+
+```shell
+docker run -d --name gobot --volume $PWD/data:/data/gobot --restart on-failure z0rr0/gobot:latest
 ```
 
 ### Commands
