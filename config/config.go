@@ -16,7 +16,7 @@ import (
 
 	botgolang "github.com/mail-ru-im/bot-golang"
 	_ "github.com/mattn/go-sqlite3" // SQLite3 driver
-	"github.com/pelletier/go-toml"
+	"github.com/pelletier/go-toml/v2"
 )
 
 // Bot contains base API configuration parameters.
