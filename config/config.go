@@ -56,13 +56,13 @@ type BuildInfo struct {
 // Config is common configuration struct.
 type Config struct {
 	sync.Mutex
-	BotSettings Bot  `toml:"bot"`
-	M           Main `toml:"main"`
-	L           Log  `toml:"log"`
-	Bot         *botgolang.Bot
-	DB          *sql.DB
-	BuildInfo   *BuildInfo
-	timeout     time.Duration
+	M         Main `toml:"main"`
+	B         Bot  `toml:"bot"`
+	L         Log  `toml:"log"`
+	Bt        *botgolang.Bot
+	DB        *sql.DB
+	BuildInfo *BuildInfo
+	timeout   time.Duration
 }
 
 // New returns new configuration.
@@ -83,6 +83,7 @@ func New(fileName string, b *BuildInfo, server *httptest.Server) (*Config, error
 	if err = toml.Unmarshal(data, c); err != nil {
 		return nil, fmt.Errorf("config parsing: %Output", err)
 	}
+	fmt.Printf("xaz c=%#v\n", c)
 	if c.M.Workers < 1 {
 		return nil, errors.New("number of workers must be greater than 0")
 	}
@@ -92,12 +93,13 @@ func New(fileName string, b *BuildInfo, server *httptest.Server) (*Config, error
 	client := http.DefaultClient
 	if server != nil {
 		client = server.Client()
-		c.BotSettings.ULR = server.URL
+		c.B.ULR = server.URL
 	}
+	fmt.Printf("xaz c.B=%#v\n", c.B)
 	bot, err := botgolang.NewBot(
-		c.BotSettings.Token,
+		c.B.Token,
 		botgolang.BotDebug(c.M.Debug),
-		botgolang.BotApiURL(c.BotSettings.ULR),
+		botgolang.BotApiURL(c.B.ULR),
 		botgolang.BotHTTPClient(*client),
 	)
 	if err != nil {
@@ -107,10 +109,10 @@ func New(fileName string, b *BuildInfo, server *httptest.Server) (*Config, error
 	if err != nil {
 		return nil, fmt.Errorf("database file: %Output", err)
 	}
-	b.URL = c.BotSettings.Src
+	b.URL = c.B.Src
 	c.timeout = time.Duration(c.M.Timeout) * time.Second
 	c.DB = database
-	c.Bot = bot
+	c.Bt = bot
 	c.BuildInfo = b
 	return c, nil
 }

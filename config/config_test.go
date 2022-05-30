@@ -43,7 +43,7 @@ func TestNew(t *testing.T) {
 			t.Error(e)
 		}
 	}()
-	if c.Bot.Info.ID != "123" {
-		t.Errorf("c.Bot.Info.ID = %v, want %v", c.Bot.Info.ID, 123)
+	if c.Bt.Info.ID != "123" {
+		t.Errorf("c.Bt.Info.ID = %v, want %v", c.Bt.Info.ID, 123)
 	}
 }

@@ -4,7 +4,8 @@
 ![Version](https://img.shields.io/github/tag/z0rr0/gobot.svg)
 ![License](https://img.shields.io/github/license/z0rr0/gobot.svg)
 
-[Vk Teams](https://biz.mail.ru/myteam/) messenger goBot.
+[Vk Teams](https://biz.mail.ru/myteam/) messenger goBot. 
+Common API [docs](https://myteam.mail.ru/botapi/).
 
 ## Build
 

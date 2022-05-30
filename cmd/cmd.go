@@ -68,8 +68,8 @@ func (e *Event) SendMessage(msg string) error {
 	if err := e.writeLog(msg); err != nil {
 		return err
 	}
-	message := e.Cfg.Bot.NewTextMessage(e.Chat.ID, msg)
-	return e.Cfg.Bot.SendMessage(message)
+	message := e.Cfg.Bt.NewTextMessage(e.Chat.ID, msg)
+	return e.Cfg.Bt.SendMessage(message)
 }
 
 // SendURLMessage sends message to chat with URL link.
@@ -77,12 +77,12 @@ func (e *Event) SendURLMessage(msg, txt, url string) error {
 	if err := e.writeLog(msg); err != nil {
 		return err
 	}
-	message := e.Cfg.Bot.NewTextMessage(e.Chat.ID, msg)
+	message := e.Cfg.Bt.NewTextMessage(e.Chat.ID, msg)
 	btn := botgolang.NewURLButton(txt, url)
 	keyboard := botgolang.NewKeyboard()
 	keyboard.AddRow(btn)
 	message.AttachInlineKeyboard(keyboard)
-	return e.Cfg.Bot.SendMessage(message)
+	return e.Cfg.Bt.SendMessage(message)
 }
 
 // ArgsUserIDs returns all UserIDs from arguments.
@@ -130,7 +130,7 @@ func Stop(ctx context.Context, e *Event) error {
 
 // Go returns a list of chat members in random order.
 func Go(_ context.Context, e *Event) error {
-	members, err := e.Cfg.Bot.GetChatMembers(e.Chat.ID)
+	members, err := e.Cfg.Bt.GetChatMembers(e.Chat.ID)
 	if err != nil {
 		return fmt.Errorf("can't get chat members: %v", err)
 	}

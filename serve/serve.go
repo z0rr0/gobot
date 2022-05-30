@@ -132,7 +132,7 @@ func New(n int) (chan<- Payload, <-chan struct{}) {
 func Run(c *config.Config, p chan<- Payload, sigint <-chan os.Signal, logInfo, logError *log.Logger) {
 	var (
 		ctx, cancel = context.WithCancel(context.Background())
-		events      = c.Bot.GetUpdatesChannel(ctx)
+		events      = c.Bt.GetUpdatesChannel(ctx)
 	)
 	defer func() {
 		close(p)
