@@ -83,7 +83,6 @@ func New(fileName string, b *BuildInfo, server *httptest.Server) (*Config, error
 	if err = toml.Unmarshal(data, c); err != nil {
 		return nil, fmt.Errorf("config parsing: %Output", err)
 	}
-	fmt.Printf("xaz c=%#v\n", c)
 	if c.M.Workers < 1 {
 		return nil, errors.New("number of workers must be greater than 0")
 	}
@@ -95,7 +94,6 @@ func New(fileName string, b *BuildInfo, server *httptest.Server) (*Config, error
 		client = server.Client()
 		c.B.ULR = server.URL
 	}
-	fmt.Printf("xaz c.B=%#v\n", c.B)
 	bot, err := botgolang.NewBot(
 		c.B.Token,
 		botgolang.BotDebug(c.M.Debug),
