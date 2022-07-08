@@ -1,4 +1,4 @@
-FROM golang:1.18.2-alpine3.15
+FROM golang:1.18.3-alpine3.16
 MAINTAINER Alexander Zaytsev "me@axv.email"
 RUN apk update && \
     apk upgrade && \
