@@ -1,4 +1,4 @@
-FROM alpine:latest
+FROM alpine:3.16
 MAINTAINER Alexander Zaytsev "me@axv.email"
 RUN apk update && \
     apk upgrade && \
