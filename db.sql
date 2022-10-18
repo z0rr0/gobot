@@ -19,7 +19,7 @@ url_text - text for chat URL
 created - timestamp of item create
 updated - timestamp of item update
 
-It was added later:
+Migrations:
 ALTER TABLE `chat` ADD COLUMN `url_text` VARCHAR(255) NOT NULL DEFAULT 'call';
  */
 

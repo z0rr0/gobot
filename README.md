@@ -15,7 +15,7 @@ make build
 
 ### Run
 
-Config example file is [config.example.json](https://github.com/z0rr0/gobot/blob/main/config.example.json).
+Config example file is [config.example.json](https://github.com/z0rr0/gobot/blob/main/config.example.toml).
 
 Local:
 
@@ -23,7 +23,7 @@ Local:
 ./gobot -config <CONFIG>
 ```
 
-Docker:
+Docker [container](https://hub.docker.com/repository/docker/z0rr0/gobot):
 
 ```shell
 docker run -d --name gobot --volume $PWD/data:/data/gobot --restart on-failure z0rr0/gobot:latest
