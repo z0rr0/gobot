@@ -3,7 +3,7 @@ TS=$(shell date -u +"%F_%T")
 TAG=$(shell git tag | sort -V | tail -1)
 COMMIT=$(shell git log --oneline | head -1)
 VERSION=$(firstword $(COMMIT))
-FLAG=-X main.Version=$(TAG) -X main.Revision=git:$(VERSION) -X main.BuildDate=$(TS)
+LDFLAGS=-X main.Version=$(TAG) -X main.Revision=git:$(VERSION) -X main.BuildDate=$(TS)
 TEST_DB=/tmp/gobot_db_test.sqlite
 TEST_CONFIG=/tmp/gobot_config_test.toml
 TEST_DB_REPLACED=$(shell echo $(TEST_DB) | sed -e 's/[\/&]/\\&/g')
@@ -16,7 +16,7 @@ DOCKER_TAG=z0rr0/gobot
 all: build
 
 build:
-	go build -o $(PWD)/$(TARGET) -ldflags "$(FLAG)"
+	go build -o $(PWD)/$(TARGET) -ldflags "$(LDFLAGS)"
 
 fmt:
 	gofmt -d .
@@ -46,8 +46,7 @@ fuzz:
 	go test -fuzz=Fuzz -fuzztime 20s github.com/z0rr0/gobot/cmd
 
 docker: lint clean
-	bash $(CONTAINER) "$(PWD)" "$(FLAG)"
-	docker build -t $(DOCKER_TAG) .
+	docker build --build-arg LDFLAGS="$(LDFLAGS)" -t $(DOCKER_TAG) .
 
 clean:
 	rm -f $(PWD)/$(TARGET)
