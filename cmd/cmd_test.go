@@ -463,6 +463,34 @@ func TestLink(t *testing.T) {
 	if msg := e.buffer.String(); msg != expected {
 		t.Errorf("failed msg='%s', want='%s'", msg, expected)
 	}
+	e.buffer.Reset()
+	// set valid new URL with bad text
+	textURL := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa " +
+		"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb " +
+		"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+	e.Arguments = "https://github.com/z0rr0/gobot " + textURL
+	if err = Link(defaultCtx, e); err != nil {
+		t.Errorf("Link: %v", err)
+	}
+	expected = "text is too long (max 255 characters)"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	e.buffer.Reset()
+	// set valid new URL with text
+	textURL = "my call text"
+	e.Arguments = "https://github.com/z0rr0/gobot " + textURL
+	if err = Link(defaultCtx, e); err != nil {
+		t.Errorf("Link: %v", err)
+	}
+	expected = "success"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	if chat.URLText != textURL {
+		t.Errorf("failed chat.URLText='%s', want='%s'", chat.URLText, textURL)
+	}
+	e.buffer.Reset()
 }
 
 func TestResetLink(t *testing.T) {
@@ -497,6 +525,7 @@ func TestResetLink(t *testing.T) {
 	e.buffer.Reset()
 	// chat has URL
 	chat.URL = "https://github.com/z0rr0/gobot"
+	chat.URLText = "my call text"
 	if err = ResetLink(defaultCtx, e); err != nil {
 		t.Errorf("ResetLink: %v", err)
 	}
@@ -506,6 +535,9 @@ func TestResetLink(t *testing.T) {
 	}
 	if chat.URL != "" {
 		t.Errorf("failed chat.URL='%s', want empty", chat.URL)
+	}
+	if chat.URLText != "call" {
+		t.Errorf("failed chat.URLText='%s', want='call'", chat.URLText)
 	}
 }
 

@@ -15,6 +15,7 @@ type Chat struct {
 	Active       bool      `db:"active"`
 	Exclude      string    `db:"exclude"`
 	URL          string    `db:"url"`
+	URLText      string    `db:"url_text"`
 	Created      time.Time `db:"created_at"`
 	Updated      time.Time `db:"updated_at"`
 	ExcludeUsers map[string]struct{}
@@ -24,6 +25,7 @@ type Chat struct {
 // Equal returns true if the two chats are equal.
 func (chat *Chat) Equal(c *Chat) bool {
 	value := chat.ID == c.ID && chat.Active == c.Active && chat.Exclude == c.Exclude && chat.URL == c.URL
+	value = value && chat.URLText == c.URLText
 	return value && chat.Created.Equal(c.Created) // updated chan be change automatically
 }
 
@@ -87,7 +89,7 @@ func (chat *Chat) ExcludeToMap() error {
 // Update saves chat's info.
 func (chat *Chat) Update(ctx context.Context, db *sql.DB) error {
 	const query = "UPDATE `chat` " +
-		"SET `active`=?, `exclude`=?, `url`=?, `created`=?, `updated`=? " +
+		"SET `active`=?, `exclude`=?, `url`=?, `url_text`=?, `created`=?, `updated`=? " +
 		"WHERE `id`=?"
 	if e := chat.ExcludeToString(); e != nil {
 		return e
@@ -98,7 +100,7 @@ func (chat *Chat) Update(ctx context.Context, db *sql.DB) error {
 			return fmt.Errorf("insert statement: %w", err)
 		}
 		_, err = tx.StmtContext(ctx, stmt).ExecContext(
-			ctx, chat.Active, chat.Exclude, chat.URL, chat.Created, time.Now().UTC(), chat.ID,
+			ctx, chat.Active, chat.Exclude, chat.URL, chat.URLText, chat.Created, time.Now().UTC(), chat.ID,
 		)
 		if err != nil {
 			return fmt.Errorf("upsert exec: %w", err)
@@ -111,7 +113,7 @@ func (chat *Chat) Update(ctx context.Context, db *sql.DB) error {
 // Upsert inserts or updates a chat, make it active.
 func (chat *Chat) Upsert(ctx context.Context, db *sql.DB) error {
 	const query = "INSERT INTO `chat` " +
-		"(`id`, `active`, `exclude`, `url`, `created`, `updated`)  VALUES (?,?,?,?,?,?) " +
+		"(`id`, `active`, `exclude`, `url`, `url_text`, `created`, `updated`)  VALUES (?,?,?,?,?,?,?) " +
 		"ON CONFLICT(id) DO UPDATE SET `active`=?, `updated`=?;"
 	if e := chat.ExcludeToString(); e != nil {
 		return e
@@ -122,7 +124,8 @@ func (chat *Chat) Upsert(ctx context.Context, db *sql.DB) error {
 			return fmt.Errorf("insert statement: %w", err)
 		}
 		_, err = tx.StmtContext(ctx, stmt).ExecContext(
-			ctx, chat.ID, chat.Active, chat.Exclude, chat.URL, chat.Created, chat.Updated, chat.Active, chat.Updated,
+			ctx, chat.ID, chat.Active, chat.Exclude, chat.URL, chat.URLText,
+			chat.Created, chat.Updated, chat.Active, chat.Updated,
 		)
 		if err != nil {
 			return fmt.Errorf("upsert exec: %w", err)

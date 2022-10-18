@@ -48,6 +48,7 @@ func TestGet(t *testing.T) {
 		Active:  true,
 		Exclude: "[\"user1\",\"user2\"]",
 		URL:     "https://github.com/",
+		URLText: "GitHub",
 		Created: now,
 		Updated: now,
 	}
@@ -87,6 +88,7 @@ func TestGetOrCreate(t *testing.T) {
 		Active:  true,
 		Exclude: "[\"user1\",\"user2\"]",
 		URL:     "https://github.com/",
+		URLText: "GitHub",
 		Created: now,
 		Updated: now,
 	}
@@ -168,6 +170,7 @@ func TestChat_Update(t *testing.T) {
 		Active:  true,
 		Exclude: "[\"user1\",\"user2\"]",
 		URL:     "https://github.com/",
+		URLText: "GitHub",
 		Created: now,
 		Updated: now,
 	}
@@ -186,6 +189,8 @@ func TestChat_Update(t *testing.T) {
 	chat.Created = time.Now().UTC()
 	chat.Exclude = "[\"user3\",\"user4\"]"
 	chat.URL = "https://gitlab.com/"
+	chat.URLText = "GitLab"
+
 	if err = chat.Update(ctx, db); err != nil {
 		t.Fatalf("failed to update chat: %s", err)
 	}
@@ -205,6 +210,7 @@ func TestChat_ExcludeToMap(t *testing.T) {
 		Active:  true,
 		Exclude: "[\"user1\",\"user2\"]",
 		URL:     "https://github.com/",
+		URLText: "GitHub",
 		Created: now,
 		Updated: now,
 	}
@@ -224,6 +230,7 @@ func TestChat_ExcludeToString(t *testing.T) {
 		Active:       true,
 		Exclude:      "[\"user1\",\"user2\"]",
 		URL:          "https://github.com/",
+		URLText:      "GitHub",
 		Created:      now,
 		Updated:      now,
 		ExcludeUsers: map[string]struct{}{"user1": {}, "user2": {}},
@@ -248,6 +255,7 @@ func TestChat_AddExclude(t *testing.T) {
 		ID:      "TestChat_ExcludeToMap",
 		Active:  true,
 		URL:     "https://github.com/",
+		URLText: "GitHub",
 		Created: now,
 		Updated: now,
 	}
@@ -272,6 +280,7 @@ func TestChat_DelExclude(t *testing.T) {
 		ID:      "TestChat_ExcludeToMap",
 		Active:  true,
 		URL:     "https://github.com/",
+		URLText: "GitHub",
 		Created: now,
 		Updated: now,
 	}

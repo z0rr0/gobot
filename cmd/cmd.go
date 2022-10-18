@@ -151,7 +151,7 @@ func Go(_ context.Context, e *Event) error {
 	})
 	msg := strings.Join(names, "\n")
 	if e.Chat.URL != "" {
-		return e.SendURLMessage(msg, "📞 call", e.Chat.URL)
+		return e.SendURLMessage(msg, "📞 "+e.Chat.URLText, e.Chat.URL)
 	}
 	return e.SendMessage(msg)
 }
@@ -225,20 +225,36 @@ func Include(ctx context.Context, e *Event) error {
 
 // Link sets a link to call or returns current one.
 func Link(ctx context.Context, e *Event) error {
+	const maxTextLen = 255
+	var textURL = "call"
+
 	if e.Arguments == "" {
 		if e.Chat.URL == "" {
 			return e.SendMessage("no calling URL for this chat")
 		}
 		return e.SendMessage(e.Chat.URL)
 	}
-	u, err := url.Parse(e.Arguments)
+	params := strings.SplitN(e.Arguments, " ", 2)
+	linkURL := params[0]
+
+	u, err := url.Parse(linkURL)
 	if err != nil {
 		return err
 	}
 	if !u.IsAbs() {
 		return e.SendMessage("incorrect URL")
 	}
+
+	if len(params) > 1 {
+		textURL = params[1]
+	}
+	if len(textURL) > maxTextLen {
+		return e.SendMessage(fmt.Sprintf("text is too long (max %d characters)", maxTextLen))
+	}
+
 	e.Chat.URL = u.String()
+	e.Chat.URLText = textURL
+
 	if err = e.Chat.Update(ctx, e.Cfg.DB); err != nil {
 		return err
 	}
@@ -251,6 +267,7 @@ func ResetLink(ctx context.Context, e *Event) error {
 		return e.SendMessage("no calling URL for this chat")
 	}
 	e.Chat.URL = ""
+	e.Chat.URLText = "call" // default value
 	if err := e.Chat.Update(ctx, e.Cfg.DB); err != nil {
 		return err
 	}
