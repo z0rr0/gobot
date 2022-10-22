@@ -31,7 +31,7 @@ func InTransaction(ctx context.Context, db *sql.DB, f func(tx *sql.Tx) error) er
 
 // Get returns a chat's pointer by its ID.
 func Get(ctx context.Context, db *sql.DB, id string) (*Chat, error) {
-	const query = "SELECT `id`, `active`, `exclude`, `url`, `url_text`, `created`, `updated` " +
+	const query = "SELECT `id`, `active`, `exclude`, `url`, `url_text`, `positions`, `created`, `updated` " +
 		"FROM `chat` WHERE `id`=? LIMIT 1;"
 	stmt, err := db.PrepareContext(ctx, query)
 	if err != nil {
@@ -39,7 +39,7 @@ func Get(ctx context.Context, db *sql.DB, id string) (*Chat, error) {
 	}
 	chat := &Chat{}
 	err = stmt.QueryRowContext(ctx, id).Scan(
-		&chat.ID, &chat.Active, &chat.Exclude, &chat.URL, &chat.URLText, &chat.Created, &chat.Updated,
+		&chat.ID, &chat.Active, &chat.Exclude, &chat.URL, &chat.URLText, &chat.Positions, &chat.Created, &chat.Updated,
 	)
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func Get(ctx context.Context, db *sql.DB, id string) (*Chat, error) {
 	if err = stmt.Close(); err != nil {
 		return nil, fmt.Errorf("close exist statement: %w", err)
 	}
-	if err = chat.ExcludeToMap(); err != nil {
+	if err = chat.afterLoad(); err != nil {
 		return nil, err
 	}
 	return chat, nil
