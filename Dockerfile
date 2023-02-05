@@ -1,4 +1,4 @@
-ARG GOLANG_VERSION="1.19.2"
+ARG GOLANG_VERSION="1.20.0"
 
 FROM golang:$GOLANG_VERSION-alpine as builder
 ARG LDFLAGS
@@ -8,7 +8,7 @@ COPY . .
 RUN echo "LDFLAGS = $LDFLAGS"
 RUN GOOS=linux go build -ldflags "$LDFLAGS" -o ./gobot
 
-FROM alpine:3.16
+FROM alpine:3.17
 MAINTAINER Alexander Zaitsev "me@axv.email"
 COPY --from=builder /go/src/github.com/z0rr0/gobot/gobot /bin/
 RUN chmod 0755 /bin/gobot
