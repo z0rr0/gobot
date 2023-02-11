@@ -1,6 +1,6 @@
 module github.com/z0rr0/gobot
 
-go 1.20
+go 1.19
 
 require (
 	github.com/mail-ru-im/bot-golang v0.0.0-20220405132937-fea9ed755353
