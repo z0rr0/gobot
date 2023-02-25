@@ -7,7 +7,6 @@ LDFLAGS=-X main.Version=$(TAG) -X main.Revision=git:$(VERSION) -X main.BuildDate
 TEST_DB=/tmp/gobot_db_test.sqlite
 TEST_CONFIG=/tmp/gobot_config_test.toml
 TEST_DB_REPLACED=$(shell echo $(TEST_DB) | sed -e 's/[\/&]/\\&/g')
-CONTAINER=docker/container_build.sh
 DOCKER_TAG=z0rr0/gobot
 
 # coverage check
@@ -47,6 +46,9 @@ fuzz:
 
 docker: lint clean
 	docker build --build-arg LDFLAGS="$(LDFLAGS)" -t $(DOCKER_TAG) .
+
+docker_both: lint clean
+	docker buildx build --platform linux/amd64,linux/arm64 --build-arg LDFLAGS="$(LDFLAGS)" -t $(DOCKER_TAG) .
 
 clean:
 	rm -f $(PWD)/$(TARGET)
