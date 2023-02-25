@@ -24,11 +24,6 @@ var (
 	userIDRegexp = regexp.MustCompile(`@\[([0-9A-Za-z@.]+)]`)
 )
 
-// init sets default random source to don't repeat the same random behavior after restart.
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
 // Event is implementation of Connector interface.
 type Event struct {
 	Cfg       *config.Config
@@ -146,7 +141,8 @@ func Go(_ context.Context, e *Event) error {
 	if len(names) == 0 {
 		return e.SendMessage("no users :(")
 	}
-	rand.Shuffle(len(names), func(i, j int) {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	r.Shuffle(len(names), func(i, j int) {
 		names[i], names[j] = names[j], names[i]
 	})
 	msg := strings.Join(names, "\n")
