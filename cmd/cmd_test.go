@@ -169,7 +169,7 @@ func TestVersion(t *testing.T) {
 		t.Errorf("Version: %v", err)
 	}
 	expected := fmt.Sprintf(
-		"%v %v\n%v, %v, %v UTC",
+		"%v %v\nRevision: %v\nGo version: %v\nBuild time: %v",
 		buildInfo.Name, buildInfo.Hash, buildInfo.Revision, buildInfo.GoVersion, buildInfo.Date,
 	)
 	if msg := e.buffer.String(); msg != expected {

@@ -1,5 +1,5 @@
 TARGET=gobot
-TS=$(shell date -u +"%F_%T")
+TS=$(shell date -u +"%FT%T")
 TAG=$(shell git tag | sort -V | tail -1)
 COMMIT=$(shell git log --oneline | head -1)
 VERSION=$(firstword $(COMMIT))
@@ -49,6 +49,9 @@ docker: lint clean
 
 docker_both: lint clean
 	docker buildx build --platform linux/amd64,linux/arm64 --build-arg LDFLAGS="$(LDFLAGS)" -t $(DOCKER_TAG) .
+
+docker_linux_amd64: lint clean
+	docker buildx build --platform linux/amd64 --build-arg LDFLAGS="$(LDFLAGS)" -t $(DOCKER_TAG) .
 
 clean:
 	rm -f $(PWD)/$(TARGET)

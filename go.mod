@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/mail-ru-im/bot-golang v0.0.0-20220405132937-fea9ed755353
 	github.com/mattn/go-sqlite3 v1.14.16
-	github.com/pelletier/go-toml/v2 v2.0.6
+	github.com/pelletier/go-toml/v2 v2.0.7
 )
 
 require (

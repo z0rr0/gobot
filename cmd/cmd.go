@@ -155,7 +155,10 @@ func Go(_ context.Context, e *Event) error {
 // Version returns bot version.
 func Version(_ context.Context, e *Event) error {
 	v := e.Cfg.BuildInfo
-	msg := fmt.Sprintf("%v %v\n%v, %v, %v UTC", v.Name, v.Hash, v.Revision, v.GoVersion, v.Date)
+	msg := fmt.Sprintf(
+		"%v %v\nRevision: %v\nGo version: %v\nBuild time: %v",
+		v.Name, v.Hash, v.Revision, v.GoVersion, v.Date,
+	)
 	if v.URL == "" {
 		return e.SendMessage(msg)
 	}

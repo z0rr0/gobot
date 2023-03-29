@@ -19,3 +19,4 @@ config.json
 gobot.csv
 config.toml
 db.sqlite
+docker_upload.sh
