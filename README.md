@@ -28,7 +28,13 @@ Docker [container](https://hub.docker.com/repository/docker/z0rr0/gobot) (data d
 ```shell
 # ls data
 # config.toml  db.sqlite
-docker run -d --name gobot -u $UID:$UID --volume $PWD/data:/data/gobot --log-opt max-size=10m --restart always z0rr0/gobot:latest
+docker run --detach \
+	--name gobot \
+	--user $UID:$UID \
+	--volume $PWD/data:/data/gobot \
+	--log-opt max-size=10m \
+	--restart always \
+	z0rr0/gobot:latest
 ```
 
 ### Commands
