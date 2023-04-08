@@ -23,10 +23,12 @@ Local:
 ./gobot -config <CONFIG>
 ```
 
-Docker [container](https://hub.docker.com/repository/docker/z0rr0/gobot):
+Docker [container](https://hub.docker.com/repository/docker/z0rr0/gobot) (data directory contains configuration and database files):
 
 ```shell
-docker run -d --name gobot --volume $PWD/data:/data/gobot --restart on-failure z0rr0/gobot:latest
+# ls data
+# config.toml  db.sqlite
+docker run -d --name gobot -u $UID:$UID --volume $PWD/data:/data/gobot --log-opt max-size=10m --restart always z0rr0/gobot:latest
 ```
 
 ### Commands
