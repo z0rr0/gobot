@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -17,6 +18,8 @@ import (
 	botgolang "github.com/mail-ru-im/bot-golang"
 	_ "github.com/mattn/go-sqlite3" // SQLite3 driver
 	"github.com/pelletier/go-toml/v2"
+
+	"github.com/z0rr0/gobot/random"
 )
 
 // Bot contains base API configuration parameters.
@@ -30,10 +33,11 @@ type Bot struct {
 
 // Main is a basic configuration settings.
 type Main struct {
-	Debug   bool   `toml:"debug"`
-	Storage string `toml:"storage"`
-	Timeout uint64 `toml:"timeout"`
-	Workers int    `toml:"workers"`
+	Debug        bool   `toml:"debug"`
+	Storage      string `toml:"storage"`
+	Timeout      uint64 `toml:"timeout"`
+	Workers      int    `toml:"workers"`
+	SecureRandom bool   `toml:"secure_random"`
 }
 
 // Log is a logging configuration settings.
@@ -56,13 +60,14 @@ type BuildInfo struct {
 // Config is common configuration struct.
 type Config struct {
 	sync.Mutex
-	M         Main `toml:"main"`
-	B         Bot  `toml:"bot"`
-	L         Log  `toml:"log"`
-	Bt        *botgolang.Bot
-	DB        *sql.DB
-	BuildInfo *BuildInfo
-	timeout   time.Duration
+	M          Main `toml:"main"`
+	B          Bot  `toml:"bot"`
+	L          Log  `toml:"log"`
+	Bt         *botgolang.Bot
+	DB         *sql.DB
+	BuildInfo  *BuildInfo
+	RandSource rand.Source
+	timeout    time.Duration
 }
 
 // New returns new configuration.
@@ -112,6 +117,7 @@ func New(fileName string, b *BuildInfo, server *httptest.Server) (*Config, error
 	c.DB = database
 	c.Bt = bot
 	c.BuildInfo = b
+	c.RandSource = random.New(c.M.SecureRandom, 0)
 	return c, nil
 }
 

@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"time"
 
 	botgolang "github.com/mail-ru-im/bot-golang"
 
@@ -141,7 +140,7 @@ func Go(_ context.Context, e *Event) error {
 	if len(names) == 0 {
 		return e.SendMessage("no users :(")
 	}
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	r := rand.New(e.Cfg.RandSource)
 	r.Shuffle(len(names), func(i, j int) {
 		names[i], names[j] = names[j], names[i]
 	})

@@ -3,6 +3,7 @@ debug = true          # debug mode
 storage = "db.sqlite" # database file
 timeout = 5           # db operation timeout (seconds)
 workers = 2           # number of workers
+secure_random = false # use secure random number generator
 
 [bot]
 id = "123"
