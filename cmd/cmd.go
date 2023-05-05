@@ -295,8 +295,10 @@ func Vacation(ctx context.Context, e *Event) error {
 		e.Chat.AddExclude(userMap)
 		msg = "you are on vacation, good luck"
 	}
+
 	if err := e.Chat.Update(ctx, e.Cfg.DB); err != nil {
 		return fmt.Errorf("can't handle command: %v", err)
 	}
-	return e.SendMessage(msg)
+
+	return e.SendMessage(fmt.Sprintf("@[%s] %s", authorUser, msg))
 }

@@ -595,7 +595,7 @@ func TestVacation(t *testing.T) {
 		t.Errorf("Vacation: %v", err)
 	}
 
-	expected = "you are on vacation, good luck"
+	expected = "@[author@my.team] you are on vacation, good luck"
 	if msg := e.buffer.String(); msg != expected {
 		t.Errorf("failed msg='%s', want='%s'", msg, expected)
 	}
@@ -610,7 +610,7 @@ func TestVacation(t *testing.T) {
 		t.Errorf("Vacation: %v", err)
 	}
 
-	expected = "you are back from vacation, welcome"
+	expected = "@[author@my.team] you are back from vacation, welcome"
 	if msg := e.buffer.String(); msg != expected {
 		t.Errorf("failed msg='%s', want='%s'", msg, expected)
 	}

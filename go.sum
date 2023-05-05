@@ -7,8 +7,6 @@ github.com/hako/durafmt v0.0.0-20190612201238-650ed9f29a84/go.mod h1:5Scbynm8dF1
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
 github.com/kr/text v0.2.0/go.mod h1:eLer722TekiGuMkidMxC/pM04lWEeraHUUmBw8l2grE=
-github.com/mail-ru-im/bot-golang v0.0.0-20220405132937-fea9ed755353 h1:OOeA1PnsWdNW85FnvxbOrIcKMf0iI78SHCItjtoNv14=
-github.com/mail-ru-im/bot-golang v0.0.0-20220405132937-fea9ed755353/go.mod h1:bjnHEAxrKVTjY/FXzpLmdRhfa8zG+EHiCevMcXC/bII=
 github.com/mail-ru-im/bot-golang v0.0.0-20230426110355-ca7c8eadc73d h1:H98mFtkaHG/vqltCzhfBVQpyaZj/qYYSw+Fj4qVPTvE=
 github.com/mail-ru-im/bot-golang v0.0.0-20230426110355-ca7c8eadc73d/go.mod h1:bjnHEAxrKVTjY/FXzpLmdRhfa8zG+EHiCevMcXC/bII=
 github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e h1:hB2xlXdHp/pmPZq0y3QnmWAArdw9PqbmotexnWx/FU8=
