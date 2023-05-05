@@ -541,6 +541,86 @@ func TestResetLink(t *testing.T) {
 	}
 }
 
+func TestVacation(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := "{\"msgId\": \"7083436385855602743\", \"ok\": true, " +
+			"\"from\": {\"firstName\": \"A\", \"lastName\": \"B\", \"userId\": \"author@my.team\"}}"
+		_, err := fmt.Fprint(w, response)
+		if err != nil {
+			t.Error(err)
+		}
+	})
+	s := httptest.NewServer(handler)
+	defer s.Close()
+	c, err := config.New(configPath, buildInfo, s)
+	if err != nil {
+		t.Fatalf("config.New: %v", err)
+	}
+	defer func() {
+		if errCfg := c.Close(); errCfg != nil {
+			t.Error(errCfg)
+		}
+	}()
+	chat := &db.Chat{ID: "TestVacation"}
+	if len(chat.ExcludeUsers) > 0 {
+		t.Errorf("failed chat.ExcludeUsers='%v', want empty", chat.ExcludeUsers)
+	}
+
+	// no author
+	e := &Event{Cfg: c, ChatEvent: &botgolang.Event{}, Chat: chat, debug: true}
+	if err = Vacation(defaultCtx, e); err != nil {
+		t.Errorf("Vacation: %v", err)
+	}
+
+	expected := "no valid author user"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	e.buffer.Reset()
+
+	if len(chat.ExcludeUsers) > 0 {
+		t.Errorf("failed chat.ExcludeUsers='%v', want empty", chat.ExcludeUsers)
+	}
+
+	payLoad := botgolang.EventPayload{
+		BaseEventPayload: botgolang.BaseEventPayload{
+			From: botgolang.Contact{User: botgolang.User{ID: "author@my.team"}},
+		},
+	}
+	e = &Event{Cfg: c, ChatEvent: &botgolang.Event{Payload: payLoad}, Chat: chat, debug: true}
+
+	// add author to exclude users
+	if err = Vacation(defaultCtx, e); err != nil {
+		t.Errorf("Vacation: %v", err)
+	}
+
+	expected = "you are on vacation, good luck"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	e.buffer.Reset()
+
+	if _, ok := chat.ExcludeUsers["author@my.team"]; !ok {
+		t.Errorf("not author in chat.ExcludeUsers: %v", chat.ExcludeUsers)
+	}
+
+	// remove author from exclude users
+	if err = Vacation(defaultCtx, e); err != nil {
+		t.Errorf("Vacation: %v", err)
+	}
+
+	expected = "you are back from vacation, welcome"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	e.buffer.Reset()
+
+	if len(chat.ExcludeUsers) > 0 {
+		t.Errorf("failed chat.ExcludeUsers='%v', want empty", chat.ExcludeUsers)
+	}
+}
+
 func TestEvent_ArgsUserIDs(t *testing.T) {
 	cases := []struct {
 		name     string

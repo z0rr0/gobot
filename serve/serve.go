@@ -23,26 +23,28 @@ var (
 	}
 	// allowedCommands is commands for handling bots actions
 	allowedCommands = map[string]func(context.Context, *cmd.Event) error{
-		"/start":   cmd.Start,
-		"/stop":    cmd.Stop,
-		"/version": cmd.Version,
-		"/go":      cmd.Go,
-		"/shuffle": cmd.Go, // alias for "/go"
-		"/exclude": cmd.Exclude,
-		"/include": cmd.Include,
-		"/link":    cmd.Link,
-		"/reset":   cmd.ResetLink,
+		"/start":    cmd.Start,
+		"/stop":     cmd.Stop,
+		"/version":  cmd.Version,
+		"/go":       cmd.Go,
+		"/shuffle":  cmd.Go, // alias for "/go"
+		"/exclude":  cmd.Exclude,
+		"/include":  cmd.Include,
+		"/link":     cmd.Link,
+		"/reset":    cmd.ResetLink,
+		"/vacation": cmd.Vacation,
 	}
 	// notSupportedCommands is commands which can't be stopped
 	notStoppedCommands = map[string]bool{"/start": true}
 	// onlyChatCommands is commands which can be used only for chats
 	onlyChatCommands = map[string]bool{
-		"/go":      true,
-		"/shuffle": true,
-		"/exclude": true,
-		"/include": true,
-		"/link":    true,
-		"/reset":   true,
+		"/go":       true,
+		"/shuffle":  true,
+		"/exclude":  true,
+		"/include":  true,
+		"/link":     true,
+		"/reset":    true,
+		"/vacation": true,
 	}
 )
 
@@ -138,7 +140,6 @@ func Run(c *config.Config, p chan<- Payload, sigint <-chan os.Signal, logInfo, l
 		close(p)
 		cancel()
 	}()
-	//signal.Notify(sigint, os.Interrupt, os.Signal(syscall.SIGTERM), os.Signal(syscall.SIGQUIT))
 	for {
 		select {
 		case s := <-sigint:

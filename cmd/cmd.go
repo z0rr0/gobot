@@ -21,6 +21,7 @@ var (
 	botIDRegexp = regexp.MustCompile(`^\d+$`)
 	// botIDRegexp is a regexp to find all UserIDs in arguments.
 	userIDRegexp = regexp.MustCompile(`@\[([0-9A-Za-z@.]+)]`)
+	authorRegexp = regexp.MustCompile(`^([0-9A-Za-z@.]+)`)
 )
 
 // Event is implementation of Connector interface.
@@ -270,4 +271,32 @@ func ResetLink(ctx context.Context, e *Event) error {
 		return err
 	}
 	return e.SendMessage("success")
+}
+
+// Vacation adds or removes users from ignored list.
+func Vacation(ctx context.Context, e *Event) error {
+	var (
+		msg        string
+		authorUser = e.ChatEvent.Payload.From.User.ID
+	)
+	if !authorRegexp.MatchString(authorUser) {
+		return e.SendMessage("no valid author user")
+	}
+
+	// only one user map, the author
+	userMap := map[string]struct{}{authorUser: {}}
+
+	if _, ok := e.Chat.ExcludeUsers[authorUser]; ok {
+		// user is already in exclude list, so delete him from it
+		e.Chat.DelExclude(userMap)
+		msg = "you are back from vacation, welcome"
+	} else {
+		// user is not in exclude list, so add him to it
+		e.Chat.AddExclude(userMap)
+		msg = "you are on vacation, good luck"
+	}
+	if err := e.Chat.Update(ctx, e.Cfg.DB); err != nil {
+		return fmt.Errorf("can't handle command: %v", err)
+	}
+	return e.SendMessage(msg)
 }
