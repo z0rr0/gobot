@@ -12,6 +12,14 @@ token = "xxx"
 url = "https://api.internal.myteam.mail.ru/bot/v1"
 src = "https://github.com/z0rr0/gobot"
 
+[gpt]
+bearer = "xxx"
+organization = ""
+max_tokens = 1000
+temperature = 0.5
+url = "https://api.openai.com/v1/chat/completions"
+proxy = ""
+
 [log]
 pidfile = ""
 logfile = ""

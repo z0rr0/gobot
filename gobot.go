@@ -72,6 +72,7 @@ func main() {
 	p, stop := serve.New(c.M.Workers)
 	serve.Run(c, p, sigint, logInfo, logError)
 	<-stop
+
 	logInfo.Printf("stopped %s", Name)
 	if err = c.Close(); err != nil {
 		log.Fatalf("can't close config: %v", err)

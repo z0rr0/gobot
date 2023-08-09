@@ -33,6 +33,7 @@ var (
 		"/link":     cmd.Link,
 		"/reset":    cmd.ResetLink,
 		"/vacation": cmd.Vacation,
+		"/gpt":      cmd.GPT,
 	}
 	// notSupportedCommands is commands which can't be stopped
 	notStoppedCommands = map[string]bool{"/start": true}
@@ -45,6 +46,7 @@ var (
 		"/link":     true,
 		"/reset":    true,
 		"/vacation": true,
+		"/gpt":      true,
 	}
 )
 
@@ -83,10 +85,12 @@ func handle(p Payload) (bool, error) {
 	if !chat.Active && !notStoppedCommands[cmdName] {
 		return false, nil
 	}
+
 	args := ""
 	if len(argsStr) > 1 {
 		args = argsStr[1] // argsStr length is 1 on 2
 	}
+
 	e := &cmd.Event{
 		Cfg:       p.Cfg,
 		ChatEvent: p.Event,
@@ -94,11 +98,18 @@ func handle(p Payload) (bool, error) {
 		Arguments: args,
 		OnlyChat:  onlyChatCommands[cmdName],
 	}
-	p.LogInfo.Printf("[%s] '%s' handling command --> %v", p.ID(), chat.ID, cmdName)
+	p.LogInfo.Printf("[%s] %q handling command --> %v", p.ID(), chat.ID, cmdName)
+
 	if e.Unavailable() {
 		return false, e.SendMessage("sorry, this command is available only for chats")
 	}
-	return true, handler(ctx, e)
+
+	if err = handler(ctx, e); err != nil {
+		p.LogError.Printf("[%s] %q error handling command: %v", p.ID(), chat.ID, err)
+		return false, e.SendMessage("sorry, some error occurred")
+	}
+
+	return true, nil
 }
 
 // New creates new channels for events queue and stopping any handling.

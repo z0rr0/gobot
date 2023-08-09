@@ -192,6 +192,53 @@ func TestVersion(t *testing.T) {
 	}
 }
 
+func TestGPT(t *testing.T) {
+	botServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := "{\"msgId\": \"7083436385855602743\", \"ok\": true}"
+		_, err := fmt.Fprint(w, response)
+		if err != nil {
+			t.Error(err)
+		}
+	}))
+	defer botServer.Close()
+
+	gptServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := `{"id":"test","object":"chat.completion","created":1677652288,` +
+			`"choices":[{"index":0,"message":{"content":"Hi, it is ChatGPT!"},` +
+			`"finish_reason":"stop"}],"usage":{"prompt_tokens":35,"completion_tokens":13,"total_tokens":48}}`
+
+		if _, err := fmt.Fprint(w, response); err != nil {
+			panic(err)
+		}
+	}))
+	defer gptServer.Close()
+
+	c, err := config.New(configPath, buildInfo, botServer)
+	if err != nil {
+		t.Fatalf("config.New: %v", err)
+	}
+	defer func() {
+		if errCfg := c.Close(); errCfg != nil {
+			t.Error(errCfg)
+		}
+	}()
+	c.G.Bearer = "test"
+	c.G.URL = gptServer.URL
+	c.G.Client = gptServer.Client()
+
+	chat := &db.Chat{ID: "TestGPT", GPT: true}
+	e := &Event{Cfg: c, ChatEvent: &botgolang.Event{}, Chat: chat, debug: true}
+	if err = GPT(defaultCtx, e); err != nil {
+		t.Errorf("GPT: %v", err)
+	}
+
+	if msg := e.buffer.String(); msg != "Hi, it is ChatGPT!" {
+		t.Errorf("failed bot response=%q", msg)
+	}
+}
+
 func TestGo(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var url = strings.TrimRight(r.URL.Path, " /")

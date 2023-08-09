@@ -13,6 +13,7 @@ import (
 type Chat struct {
 	ID           string    `db:"id"`
 	Active       bool      `db:"active"`
+	GPT          bool      `db:"gpt"`
 	Exclude      string    `db:"exclude"`
 	URL          string    `db:"url"`
 	URLText      string    `db:"url_text"`

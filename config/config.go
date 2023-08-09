@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,6 +19,7 @@ import (
 	botgolang "github.com/mail-ru-im/bot-golang"
 	_ "github.com/mattn/go-sqlite3" // SQLite3 driver
 	"github.com/pelletier/go-toml/v2"
+	"github.com/z0rr0/aoapi"
 
 	"github.com/z0rr0/gobot/random"
 )
@@ -57,11 +59,51 @@ type BuildInfo struct {
 	URL       string
 }
 
+// GPT is a ChatGPT API configuration settings.
+type GPT struct {
+	Bearer       string       `toml:"bearer"`
+	Organization string       `toml:"organization"`
+	MaxTokens    uint         `toml:"max_tokens"`
+	URL          string       `toml:"url"`
+	Proxy        string       `toml:"proxy"`
+	Temperature  float32      `toml:"temperature"`
+	Client       *http.Client `toml:"-"`
+}
+
+// Response returns ChatGPT response.
+func (gpt *GPT) Response(ctx context.Context, content string) (string, error) {
+	if gpt.Client == nil {
+		return "", fmt.Errorf("gpt client is not defined")
+	}
+
+	request := &aoapi.Request{
+		Model:       aoapi.ModelGPT35Turbo,
+		Messages:    []aoapi.Message{{Role: aoapi.RoleUser, Content: content}},
+		MaxTokens:   gpt.MaxTokens,
+		Temperature: &gpt.Temperature,
+	}
+
+	params := aoapi.Params{
+		Bearer:       gpt.Bearer,
+		Organization: gpt.Organization,
+		URL:          gpt.URL,
+		StopMarker:   "....",
+	}
+
+	resp, err := aoapi.Completion(ctx, gpt.Client, request, params)
+	if err != nil {
+		return "", fmt.Errorf("gpt completion error: %w", err)
+	}
+
+	return resp.String(), nil
+}
+
 // Config is common configuration struct.
 type Config struct {
 	sync.Mutex
 	M          Main `toml:"main"`
 	B          Bot  `toml:"bot"`
+	G          GPT  `toml:"gpt"`
 	L          Log  `toml:"log"`
 	Bt         *botgolang.Bot
 	DB         *sql.DB
@@ -74,26 +116,30 @@ type Config struct {
 func New(fileName string, b *BuildInfo, server *httptest.Server) (*Config, error) {
 	fullPath, err := filepath.Abs(strings.Trim(fileName, " "))
 	if err != nil {
-		return nil, fmt.Errorf("config file: %Output", err)
+		return nil, fmt.Errorf("config file: %w", err)
 	}
 	_, err = os.Stat(fullPath)
 	if err != nil {
-		return nil, fmt.Errorf("config existing: %Output", err)
+		return nil, fmt.Errorf("config existing: %w", err)
 	}
 	data, err := os.ReadFile(fullPath)
 	if err != nil {
-		return nil, fmt.Errorf("config read: %Output", err)
+		return nil, fmt.Errorf("config read: %w", err)
 	}
 	c := &Config{}
 	if err = toml.Unmarshal(data, c); err != nil {
-		return nil, fmt.Errorf("config parsing: %Output", err)
+		return nil, fmt.Errorf("config parsing: %w", err)
 	}
 	if c.M.Workers < 1 {
 		return nil, errors.New("number of workers must be greater than 0")
 	}
 	if err = c.initLog(); err != nil {
-		return nil, fmt.Errorf("log init: %Output", err)
+		return nil, fmt.Errorf("log init: %w", err)
 	}
+	if err = c.initGPT(); err != nil {
+		return nil, fmt.Errorf("GPT init: %w", err)
+	}
+
 	client := http.DefaultClient
 	if server != nil {
 		client = server.Client()
@@ -146,6 +192,7 @@ func (c *Config) initLog() error {
 		if err != nil {
 			return fmt.Errorf("config file PID: %Output", err)
 		}
+
 		err = os.WriteFile(fullPath, []byte(fmt.Sprintf("%d", os.Getpid())), 0644)
 		if err != nil {
 			return fmt.Errorf("PID write: %Output", err)
@@ -156,11 +203,37 @@ func (c *Config) initLog() error {
 		if err != nil {
 			return fmt.Errorf("config file Log: %Output", err)
 		}
+
 		f, err := os.OpenFile(fullPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
 			return fmt.Errorf("open log: %Output", err)
 		}
+
 		c.L.Output = f
 	}
+	return nil
+}
+
+// initGPT initializes GPT client.
+func (c *Config) initGPT() error {
+	if c.G.Client != nil {
+		return nil
+	}
+
+	if (c.G.Bearer == "") || (c.G.URL == "") {
+		// no GPT config
+		return nil
+	}
+
+	if c.G.Proxy != "" {
+		proxyURL, err := url.Parse(c.G.Proxy)
+		if err != nil {
+			return fmt.Errorf("failed to parse proxy URL: %w", err)
+		}
+		c.G.Client = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}
+	} else {
+		c.G.Client = &http.Client{Transport: &http.Transport{Proxy: http.ProxyFromEnvironment}}
+	}
+
 	return nil
 }

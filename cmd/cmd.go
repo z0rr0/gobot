@@ -72,10 +72,13 @@ func (e *Event) SendURLMessage(msg, txt, url string) error {
 	if err := e.writeLog(msg); err != nil {
 		return err
 	}
+
 	message := e.Cfg.Bt.NewTextMessage(e.Chat.ID, msg)
 	btn := botgolang.NewURLButton(txt, url)
+
 	keyboard := botgolang.NewKeyboard()
 	keyboard.AddRow(btn)
+
 	message.AttachInlineKeyboard(keyboard)
 	return e.Cfg.Bt.SendMessage(message)
 }
@@ -83,10 +86,12 @@ func (e *Event) SendURLMessage(msg, txt, url string) error {
 // ArgsUserIDs returns all UserIDs from arguments.
 func (e *Event) ArgsUserIDs() map[string]struct{} {
 	found := userIDRegexp.FindAllStringSubmatch(e.Arguments, -1)
+
 	n := len(found)
 	if n == 0 {
 		return nil
 	}
+
 	users := make(map[string]struct{}, n)
 	for _, userInfo := range found {
 		if len(userInfo) != 2 {
@@ -170,10 +175,12 @@ func (e *Event) getExclude() string {
 	if e.Chat.ExcludeUsers == nil {
 		return ""
 	}
+
 	exclude := make([]string, 0, len(e.Chat.ExcludeUsers))
 	for userID := range e.Chat.ExcludeUsers {
 		exclude = append(exclude, fmt.Sprintf("@[%s]", userID))
 	}
+
 	sort.Strings(exclude)
 	return strings.Join(exclude, "\n")
 }
@@ -301,4 +308,22 @@ func Vacation(ctx context.Context, e *Event) error {
 	}
 
 	return e.SendMessage(fmt.Sprintf("@[%s] %s", authorUser, msg))
+}
+
+// GPT generates text using ChatGPT.
+func GPT(ctx context.Context, e *Event) error {
+	if !e.Chat.GPT {
+		return e.SendMessage("gpt is not allowed for this chat")
+	}
+
+	if e.Cfg.G.Client == nil {
+		return e.SendMessage("gpt is not configured")
+	}
+
+	result, err := e.Cfg.G.Response(ctx, e.Arguments)
+	if err != nil {
+		return err
+	}
+
+	return e.SendMessage(result)
 }

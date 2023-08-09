@@ -15,7 +15,7 @@ make build
 
 ### Run
 
-Config example file is [config.example.json](https://github.com/z0rr0/gobot/blob/main/config.example.toml).
+Config example file is [config.example.toml](https://github.com/z0rr0/gobot/blob/main/config.example.toml).
 
 Local:
 
