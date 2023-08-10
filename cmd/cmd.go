@@ -312,15 +312,20 @@ func Vacation(ctx context.Context, e *Event) error {
 
 // GPT generates text using ChatGPT.
 func GPT(ctx context.Context, e *Event) error {
-	if !e.Chat.GPT {
-		return e.SendMessage("gpt is not allowed for this chat")
-	}
-
 	if e.Cfg.G.Client == nil {
 		return e.SendMessage("gpt is not configured")
 	}
 
-	result, err := e.Cfg.G.Response(ctx, e.Arguments)
+	if !e.Chat.GPT {
+		return e.SendMessage("gpt is not allowed for this chat")
+	}
+
+	content := strings.TrimSpace(e.Arguments)
+	if content == "" {
+		return e.SendMessage("no arguments")
+	}
+
+	result, err := e.Cfg.G.Response(ctx, content)
 	if err != nil {
 		return err
 	}

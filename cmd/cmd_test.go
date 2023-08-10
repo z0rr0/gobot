@@ -229,7 +229,7 @@ func TestGPT(t *testing.T) {
 	c.G.Client = gptServer.Client()
 
 	chat := &db.Chat{ID: "TestGPT", GPT: true}
-	e := &Event{Cfg: c, ChatEvent: &botgolang.Event{}, Chat: chat, debug: true}
+	e := &Event{Cfg: c, ChatEvent: &botgolang.Event{}, Chat: chat, Arguments: "request", debug: true}
 	if err = GPT(defaultCtx, e); err != nil {
 		t.Errorf("GPT: %v", err)
 	}

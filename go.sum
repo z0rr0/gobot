@@ -29,8 +29,8 @@ github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
-github.com/z0rr0/aoapi v1.2.3 h1:Sh50AS0vOLp9EPzy1lZgvCvPiGD8NuTuNG28psxUEn0=
-github.com/z0rr0/aoapi v1.2.3/go.mod h1:HMn0fITmHQKiW0bRqmISfNrlprg5ASJesA+DtkRG1TE=
+github.com/z0rr0/aoapi v1.2.4 h1:N2XoAEp2B4qCnUkO/TI4VyG8uQX1nMtGdunclgocdTA=
+github.com/z0rr0/aoapi v1.2.4/go.mod h1:HMn0fITmHQKiW0bRqmISfNrlprg5ASJesA+DtkRG1TE=
 golang.org/x/sys v0.0.0-20191026070338-33540a1f6037/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20211013075003-97ac67df715c/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.5.0 h1:MUK/U/4lj1t1oPg0HfuXDN/Z1wv31ZJ/YcPiGccS4DU=
