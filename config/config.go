@@ -76,7 +76,7 @@ func (gpt *GPT) Response(ctx context.Context, content string) (string, error) {
 		return "", fmt.Errorf("gpt client is not defined")
 	}
 
-	request := &aoapi.Request{
+	request := &aoapi.CompletionRequest{
 		Model:       aoapi.ModelGPT35TurboK16,
 		Messages:    []aoapi.Message{{Role: aoapi.RoleUser, Content: content}},
 		MaxTokens:   gpt.MaxTokens,
