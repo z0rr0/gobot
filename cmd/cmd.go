@@ -332,3 +332,26 @@ func GPT(ctx context.Context, e *Event) error {
 
 	return e.SendMessage(result)
 }
+
+// YandexGPT generates text using Yandex GPT.
+func YandexGPT(ctx context.Context, e *Event) error {
+	if e.Cfg.Y.Client == nil {
+		return e.SendMessage("yandex gpt is not configured")
+	}
+
+	if !e.Chat.GPT {
+		return e.SendMessage("gpt is not allowed for this chat")
+	}
+
+	content := strings.TrimSpace(e.Arguments)
+	if content == "" {
+		return e.SendMessage("no arguments")
+	}
+
+	result, err := e.Cfg.Y.Response(ctx, content)
+	if err != nil {
+		return err
+	}
+
+	return e.SendMessage(result)
+}

@@ -1,4 +1,4 @@
-ARG GOLANG_VERSION="1.21.0"
+ARG GOLANG_VERSION="1.21.1"
 
 FROM golang:${GOLANG_VERSION}-alpine as builder
 ARG LDFLAGS
@@ -16,6 +16,7 @@ LABEL org.opencontainers.image.authors="me@axv.email" \
         org.opencontainers.image.licenses="GPL-3.0" \
         org.opencontainers.image.title="GoBot" \
         org.opencontainers.image.description="Vk Teams messenger goBot"
+
 COPY --from=builder /go/src/github.com/z0rr0/gobot/gobot /bin/
 RUN chmod 0755 /bin/gobot
 

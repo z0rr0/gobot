@@ -1,12 +1,13 @@
 module github.com/z0rr0/gobot
 
-go 1.20
+go 1.21
 
 require (
 	github.com/mail-ru-im/bot-golang v0.0.0-20230426110355-ca7c8eadc73d
 	github.com/mattn/go-sqlite3 v1.14.17
-	github.com/pelletier/go-toml/v2 v2.0.9
-	github.com/z0rr0/aoapi v1.3.1
+	github.com/pelletier/go-toml/v2 v2.1.0
+	github.com/z0rr0/aoapi v1.4.3
+	github.com/z0rr0/tgtpgybot v0.1.3
 )
 
 require (

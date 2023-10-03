@@ -239,6 +239,51 @@ func TestGPT(t *testing.T) {
 	}
 }
 
+func TestYandexGPT(t *testing.T) {
+	botServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := "{\"msgId\": \"7083436385855602743\", \"ok\": true}"
+		_, err := fmt.Fprint(w, response)
+		if err != nil {
+			t.Error(err)
+		}
+	}))
+	defer botServer.Close()
+
+	gptServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := `{"result":{"message":{"role":"Ассистент","text":"Меня зовут Алиса"},"num_tokens":"20"}}`
+
+		if _, err := fmt.Fprint(w, response); err != nil {
+			panic(err)
+		}
+	}))
+	defer gptServer.Close()
+
+	c, err := config.New(configPath, buildInfo, botServer)
+	if err != nil {
+		t.Fatalf("config.New: %v", err)
+	}
+	defer func() {
+		if errCfg := c.Close(); errCfg != nil {
+			t.Error(errCfg)
+		}
+	}()
+	c.Y.APIKey = "test"
+	c.Y.URL = gptServer.URL
+	c.Y.Client = gptServer.Client()
+
+	chat := &db.Chat{ID: "TestYandexGPT", GPT: true}
+	e := &Event{Cfg: c, ChatEvent: &botgolang.Event{}, Chat: chat, Arguments: "request", debug: true}
+	if err = YandexGPT(defaultCtx, e); err != nil {
+		t.Errorf("Yandex GPT: %v", err)
+	}
+
+	if msg := e.buffer.String(); msg != "Меня зовут Алиса" {
+		t.Errorf("failed bot response=%q", msg)
+	}
+}
+
 func TestGo(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var url = strings.TrimRight(r.URL.Path, " /")

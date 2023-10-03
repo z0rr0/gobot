@@ -16,6 +16,8 @@ github.com/mattn/go-sqlite3 v1.14.17/go.mod h1:2eHXhiwb8IkHr+BDWZGa96P6+rkvnG63S
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/pelletier/go-toml/v2 v2.0.9 h1:uH2qQXheeefCCkuBBSLi7jCiSmj3VRh2+Goq2N7Xxu0=
 github.com/pelletier/go-toml/v2 v2.0.9/go.mod h1:tJU2Z3ZkXwnxa4DPO899bsyIoywizdUvyaeZurnPPDc=
+github.com/pelletier/go-toml/v2 v2.1.0 h1:FnwAJ4oYMvbT/34k9zzHuZNrhlz48GB3/s6at6/MHO4=
+github.com/pelletier/go-toml/v2 v2.1.0/go.mod h1:tJU2Z3ZkXwnxa4DPO899bsyIoywizdUvyaeZurnPPDc=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/sirupsen/logrus v1.8.1 h1:dJKuHgqk1NNQlqoA6BTlM1Wf9DOH3NBjQyu0h9+AZZE=
@@ -31,6 +33,10 @@ github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcU
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 github.com/z0rr0/aoapi v1.3.1 h1:LloUJdeKWmM1xIHa7AsmMsxddaV+hUPeCvdOD7IotY0=
 github.com/z0rr0/aoapi v1.3.1/go.mod h1:HMn0fITmHQKiW0bRqmISfNrlprg5ASJesA+DtkRG1TE=
+github.com/z0rr0/aoapi v1.4.3 h1:0RczHY+8g4sypm3ca6sKrC2cJ77VQvvaM9SHcF9Oy3Q=
+github.com/z0rr0/aoapi v1.4.3/go.mod h1:HMn0fITmHQKiW0bRqmISfNrlprg5ASJesA+DtkRG1TE=
+github.com/z0rr0/tgtpgybot v0.1.3 h1:cPmExHhtF75OIQFK+iM1CrGuqgh7R/I6yVCFS9ZRUS8=
+github.com/z0rr0/tgtpgybot v0.1.3/go.mod h1:GU+W2M48+PGK9q0CZoMwB1tZ/1Ru8kTDQ8rph5j1Nss=
 golang.org/x/sys v0.0.0-20191026070338-33540a1f6037/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20211013075003-97ac67df715c/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.5.0 h1:MUK/U/4lj1t1oPg0HfuXDN/Z1wv31ZJ/YcPiGccS4DU=

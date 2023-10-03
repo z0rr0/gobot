@@ -34,6 +34,7 @@ var (
 		"/reset":    cmd.ResetLink,
 		"/vacation": cmd.Vacation,
 		"/gpt":      cmd.GPT,
+		"/ygpt":     cmd.YandexGPT,
 	}
 	// notSupportedCommands is commands which can't be stopped
 	notStoppedCommands = map[string]bool{"/start": true}

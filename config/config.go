@@ -20,6 +20,7 @@ import (
 	_ "github.com/mattn/go-sqlite3" // SQLite3 driver
 	"github.com/pelletier/go-toml/v2"
 	"github.com/z0rr0/aoapi"
+	"github.com/z0rr0/tgtpgybot/ygpt"
 
 	"github.com/z0rr0/gobot/random"
 )
@@ -98,13 +99,38 @@ func (gpt *GPT) Response(ctx context.Context, content string) (string, error) {
 	return resp.String(), nil
 }
 
+// YandexGPT is a Yandex GPT API configuration settings.
+type YandexGPT struct {
+	APIKey string       `toml:"api_key"`
+	URL    string       `toml:"url"`
+	Proxy  string       `toml:"proxy"`
+	Client *http.Client `toml:"-"`
+}
+
+// Response returns Yandex GPT response.
+func (yt *YandexGPT) Response(ctx context.Context, content string) (string, error) {
+	if yt.Client == nil {
+		return "", fmt.Errorf("yandex gpt client is not defined")
+	}
+
+	request := &ygpt.ChatRequest{APIKey: yt.APIKey, URL: yt.URL, Text: content}
+
+	resp, err := ygpt.GenerationChat(ctx, yt.Client, request)
+	if err != nil {
+		return "", fmt.Errorf("yandex gpt completion error: %w", err)
+	}
+
+	return resp.String(), nil
+}
+
 // Config is common configuration struct.
 type Config struct {
 	sync.Mutex
-	M          Main `toml:"main"`
-	B          Bot  `toml:"bot"`
-	G          GPT  `toml:"gpt"`
-	L          Log  `toml:"log"`
+	M          Main      `toml:"main"`
+	B          Bot       `toml:"bot"`
+	G          GPT       `toml:"gpt"`
+	Y          YandexGPT `toml:"yandex_gpt"`
+	L          Log       `toml:"log"`
 	Bt         *botgolang.Bot
 	DB         *sql.DB
 	BuildInfo  *BuildInfo
@@ -118,26 +144,36 @@ func New(fileName string, b *BuildInfo, server *httptest.Server) (*Config, error
 	if err != nil {
 		return nil, fmt.Errorf("config file: %w", err)
 	}
+
 	_, err = os.Stat(fullPath)
 	if err != nil {
 		return nil, fmt.Errorf("config existing: %w", err)
 	}
+
 	data, err := os.ReadFile(fullPath)
 	if err != nil {
 		return nil, fmt.Errorf("config read: %w", err)
 	}
+
 	c := &Config{}
 	if err = toml.Unmarshal(data, c); err != nil {
 		return nil, fmt.Errorf("config parsing: %w", err)
 	}
+
 	if c.M.Workers < 1 {
 		return nil, errors.New("number of workers must be greater than 0")
 	}
+
 	if err = c.initLog(); err != nil {
 		return nil, fmt.Errorf("log init: %w", err)
 	}
+
 	if err = c.initGPT(); err != nil {
 		return nil, fmt.Errorf("GPT init: %w", err)
+	}
+
+	if err = c.initYandexGPT(); err != nil {
+		return nil, fmt.Errorf("yandex GPT init: %w", err)
 	}
 
 	client := http.DefaultClient
@@ -154,15 +190,18 @@ func New(fileName string, b *BuildInfo, server *httptest.Server) (*Config, error
 	if err != nil {
 		return nil, fmt.Errorf("can not init bot: %Output", err)
 	}
+
 	database, err := sql.Open("sqlite3", c.M.Storage)
 	if err != nil {
 		return nil, fmt.Errorf("database file: %Output", err)
 	}
+
 	b.URL = c.B.Src
 	c.timeout = time.Duration(c.M.Timeout) * time.Second
 	c.DB = database
 	c.Bt = bot
 	c.BuildInfo = b
+
 	c.RandSource = random.New(c.M.SecureRandom, 0)
 	return c, nil
 }
@@ -214,26 +253,50 @@ func (c *Config) initLog() error {
 	return nil
 }
 
+func gptInit(key, uri, proxy string) (*http.Client, error) {
+	if (key == "") || (uri == "") {
+		// no config settings
+		return nil, nil
+	}
+
+	if proxy != "" {
+		proxyURL, err := url.Parse(proxy)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse proxy URL: %w", err)
+		}
+
+		return &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}, nil
+	}
+
+	return &http.Client{Transport: &http.Transport{Proxy: http.ProxyFromEnvironment}}, nil
+}
+
 // initGPT initializes GPT client.
 func (c *Config) initGPT() error {
 	if c.G.Client != nil {
 		return nil
 	}
 
-	if (c.G.Bearer == "") || (c.G.URL == "") {
-		// no GPT config
+	client, err := gptInit(c.G.Bearer, c.G.URL, c.G.Proxy)
+	if err != nil {
+		return err
+	}
+
+	c.G.Client = client
+	return nil
+}
+
+// initYandexGPT initializes Yandex GPT client.
+func (c *Config) initYandexGPT() error {
+	if c.Y.Client != nil {
 		return nil
 	}
 
-	if c.G.Proxy != "" {
-		proxyURL, err := url.Parse(c.G.Proxy)
-		if err != nil {
-			return fmt.Errorf("failed to parse proxy URL: %w", err)
-		}
-		c.G.Client = &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}
-	} else {
-		c.G.Client = &http.Client{Transport: &http.Transport{Proxy: http.ProxyFromEnvironment}}
+	client, err := gptInit(c.Y.APIKey, c.Y.URL, c.Y.Proxy)
+	if err != nil {
+		return err
 	}
 
+	c.Y.Client = client
 	return nil
 }

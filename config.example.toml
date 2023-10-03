@@ -20,6 +20,11 @@ temperature = 0.5
 url = "https://api.openai.com/v1/chat/completions"
 proxy = ""
 
+[yandex_gpt]
+api_key = "xxx"
+url = "https://llm.api.cloud.yandex.net/llm/v1alpha/chat"
+proxy = ""
+
 [log]
 pidfile = ""
 logfile = ""
