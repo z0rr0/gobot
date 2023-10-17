@@ -11,8 +11,9 @@ require (
 )
 
 require (
-	github.com/hako/durafmt v0.0.0-20190612201238-650ed9f29a84 // indirect
-	github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e // indirect
-	github.com/sirupsen/logrus v1.8.1 // indirect
-	golang.org/x/sys v0.5.0 // indirect
+	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b // indirect
+	github.com/josharian/intern v1.0.0 // indirect
+	github.com/mailru/easyjson v0.7.7 // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
+	golang.org/x/sys v0.13.0 // indirect
 )

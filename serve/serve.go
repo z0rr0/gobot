@@ -113,6 +113,28 @@ func handle(p Payload) (bool, error) {
 	return true, nil
 }
 
+// worker is a worker function for events handling.
+// It listens for the queue channel and handles incoming items.
+func worker(wg *sync.WaitGroup, queue <-chan Payload) {
+	var (
+		msgID    string
+		start    time.Time
+		duration time.Duration
+	)
+	defer wg.Done()
+
+	for p := range queue {
+		msgID, start = p.ID(), time.Now()
+
+		if handled, err := handle(p); err != nil {
+			p.LogError.Printf("[%s] error handling event: %v", msgID, err)
+		} else {
+			duration = time.Since(start).Truncate(10 * time.Millisecond)
+			p.LogInfo.Printf("[%s] handled event in %v (handled=%v)", msgID, duration, handled)
+		}
+	}
+}
+
 // New creates new channels for events queue and stopping any handling.
 // A caller must close queue channel and waits stop one closing.
 func New(n int) (chan<- Payload, <-chan struct{}) {
@@ -123,22 +145,14 @@ func New(n int) (chan<- Payload, <-chan struct{}) {
 	)
 	wg.Add(n)
 	for i := 0; i < n; i++ {
-		go func() {
-			for p := range queue {
-				id, start := p.ID(), time.Now()
-				if handled, err := handle(p); err != nil {
-					p.LogError.Printf("[%s] error handling event: %v", id, err)
-				} else {
-					p.LogInfo.Printf("[%s] handled event in %v (handled=%v)", id, time.Since(start), handled)
-				}
-			}
-			wg.Done()
-		}()
+		go worker(&wg, queue)
 	}
+
 	go func() {
 		wg.Wait()
 		close(stop)
 	}()
+
 	return queue, stop
 }
 
