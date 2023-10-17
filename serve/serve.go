@@ -117,9 +117,8 @@ func handle(p Payload) (bool, error) {
 // It listens for the queue channel and handles incoming items.
 func worker(wg *sync.WaitGroup, queue <-chan Payload) {
 	var (
-		msgID    string
-		start    time.Time
-		duration time.Duration
+		msgID string
+		start time.Time
 	)
 	defer wg.Done()
 
@@ -129,8 +128,7 @@ func worker(wg *sync.WaitGroup, queue <-chan Payload) {
 		if handled, err := handle(p); err != nil {
 			p.LogError.Printf("[%s] error handling event: %v", msgID, err)
 		} else {
-			duration = time.Since(start).Truncate(10 * time.Millisecond)
-			p.LogInfo.Printf("[%s] handled event in %v (handled=%v)", msgID, duration, handled)
+			p.LogInfo.Printf("[%s] handled event in %v (handled=%v)", msgID, time.Since(start), handled)
 		}
 	}
 }
