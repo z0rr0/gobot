@@ -41,7 +41,7 @@ type Main struct {
 	Timeout      uint64 `toml:"timeout"`
 	Workers      int    `toml:"workers"`
 	SecureRandom bool   `toml:"secure_random"`
-	Timezone     string `toml:"timezone"`
+	Timezone     string `toml:"Timezone"`
 }
 
 // Log is a logging configuration settings.
@@ -137,7 +137,7 @@ type Config struct {
 	BuildInfo  *BuildInfo
 	RandSource rand.Source
 	timeout    time.Duration
-	timezone   *time.Location
+	Timezone   *time.Location
 }
 
 // New returns new configuration.
@@ -179,7 +179,7 @@ func New(fileName string, b *BuildInfo, server *httptest.Server) (*Config, error
 	}
 
 	if err = c.parseTimezone(); err != nil {
-		return nil, fmt.Errorf("timezone parsing: %w", err)
+		return nil, fmt.Errorf("Timezone parsing: %w", err)
 	}
 
 	client := http.DefaultClient
@@ -316,9 +316,9 @@ func (c *Config) parseTimezone() error {
 
 	loc, err := time.LoadLocation(tz)
 	if err != nil {
-		return fmt.Errorf("failed to load timezone: %w", err)
+		return fmt.Errorf("failed to load Timezone: %w", err)
 	}
 
-	c.timezone = loc
+	c.Timezone = loc
 	return nil
 }

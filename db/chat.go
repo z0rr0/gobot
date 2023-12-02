@@ -94,6 +94,19 @@ func (chat *Chat) SkipToMap() error {
 	return nil
 }
 
+// AddSkip adds user to an skip-set.
+func (chat *Chat) AddSkip(userID string) {
+	if chat.SkipUsers == nil {
+		chat.SkipUsers = make(map[string]struct{})
+	}
+	chat.SkipUsers[userID] = struct{}{}
+}
+
+// DelSkip removes user from an skip-set.
+func (chat *Chat) DelSkip(userID string) {
+	delete(chat.SkipUsers, userID)
+}
+
 // Update saves chat's info.
 func (chat *Chat) Update(ctx context.Context, db *sql.DB) error {
 	const query = "UPDATE `chat` " +

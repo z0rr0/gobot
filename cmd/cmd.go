@@ -356,3 +356,28 @@ func YandexGPT(ctx context.Context, e *Event) error {
 
 	return e.SendMessage(result)
 }
+
+// Skip adds or removes users from skipped list.
+func Skip(ctx context.Context, e *Event) error {
+	var (
+		msg        string
+		authorUser = e.ChatEvent.Payload.From.User.ID
+	)
+	if !authorRegexp.MatchString(authorUser) {
+		return e.SendMessage("no valid author user")
+	}
+
+	if _, ok := e.Chat.ExcludeUsers[authorUser]; ok {
+		e.Chat.AddSkip(authorUser)
+		msg = "ok, you will be skipped today"
+	} else {
+		e.Chat.DelSkip(authorUser)
+		msg = "ok, you will not be skipped today"
+	}
+
+	if err := e.Chat.Update(ctx, e.Cfg.DB); err != nil {
+		return fmt.Errorf("can't handle command: %v", err)
+	}
+
+	return e.SendMessage(fmt.Sprintf("@[%s] %s", authorUser, msg))
+}

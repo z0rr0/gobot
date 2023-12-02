@@ -13,6 +13,7 @@ import (
 
 	"github.com/z0rr0/gobot/config"
 	"github.com/z0rr0/gobot/serve"
+	"github.com/z0rr0/gobot/skip"
 )
 
 const (
@@ -72,7 +73,10 @@ func main() {
 
 	p, stop := serve.New(c.M.Workers)
 	serve.Run(c, p, sigint, logInfo, logError)
+	stopSkip := skip.New(c, stop, logInfo, logError)
+
 	<-stop
+	<-stopSkip
 
 	logInfo.Printf("stopped %s", Name)
 	if err = c.Close(); err != nil {

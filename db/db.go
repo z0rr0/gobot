@@ -76,3 +76,23 @@ func GetOrCreate(ctx context.Context, db *sql.DB, id string) (*Chat, error) {
 	chat.Saved = true
 	return chat, nil
 }
+
+// CleanSkip removes all skip columns from chats.
+func CleanSkip(ctx context.Context, db *sql.DB) error {
+	const query = "UPDATE `chat` SET `skip`='' WHERE `skip` != '';"
+	stmt, err := db.PrepareContext(ctx, query)
+	if err != nil {
+		return fmt.Errorf("exist statement: %w", err)
+	}
+
+	_, err = stmt.ExecContext(ctx)
+	if err != nil {
+		return fmt.Errorf("clean skip exec: %w", err)
+	}
+
+	if err = stmt.Close(); err != nil {
+		return fmt.Errorf("close exist statement: %w", err)
+	}
+
+	return nil
+}

@@ -35,6 +35,7 @@ var (
 		"/vacation": cmd.Vacation,
 		"/gpt":      cmd.GPT,
 		"/ygpt":     cmd.YandexGPT,
+		"/skip":     cmd.Skip,
 	}
 	// notSupportedCommands is commands which can't be stopped
 	notStoppedCommands = map[string]bool{"/start": true}
@@ -48,6 +49,8 @@ var (
 		"/reset":    true,
 		"/vacation": true,
 		"/gpt":      true,
+		"/ygpt":     true,
+		"/skip":     true,
 	}
 )
 
