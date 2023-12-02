@@ -191,6 +191,7 @@ func (e *Event) setExclude(ctx context.Context) error {
 	if len(users) == 0 {
 		return e.SendMessage("no user IDs in arguments")
 	}
+
 	e.Chat.AddExclude(users)
 	if err := e.Chat.Update(ctx, e.Cfg.DB); err != nil {
 		return fmt.Errorf("can't handle exclude command: %v", err)

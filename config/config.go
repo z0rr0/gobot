@@ -41,6 +41,7 @@ type Main struct {
 	Timeout      uint64 `toml:"timeout"`
 	Workers      int    `toml:"workers"`
 	SecureRandom bool   `toml:"secure_random"`
+	Timezone     string `toml:"timezone"`
 }
 
 // Log is a logging configuration settings.
@@ -136,6 +137,7 @@ type Config struct {
 	BuildInfo  *BuildInfo
 	RandSource rand.Source
 	timeout    time.Duration
+	timezone   *time.Location
 }
 
 // New returns new configuration.
@@ -174,6 +176,10 @@ func New(fileName string, b *BuildInfo, server *httptest.Server) (*Config, error
 
 	if err = c.initYandexGPT(); err != nil {
 		return nil, fmt.Errorf("yandex GPT init: %w", err)
+	}
+
+	if err = c.parseTimezone(); err != nil {
+		return nil, fmt.Errorf("timezone parsing: %w", err)
 	}
 
 	client := http.DefaultClient
@@ -298,5 +304,21 @@ func (c *Config) initYandexGPT() error {
 	}
 
 	c.Y.Client = client
+	return nil
+}
+
+func (c *Config) parseTimezone() error {
+	var tz = "UTC"
+
+	if c.M.Timezone != "" {
+		tz = c.M.Timezone
+	}
+
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		return fmt.Errorf("failed to load timezone: %w", err)
+	}
+
+	c.timezone = loc
 	return nil
 }

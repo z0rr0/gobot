@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS `chat`
     `active`   SMALLINT                 NOT NULL DEFAULT 0,
     `gpt`      SMALLINT                 NOT NULL DEFAULT 0,
     `exclude`  TEXT,
+    `skip`     TEXT,
     `url`      TEXT,
     `url_text` VARCHAR(255)             NOT NULL DEFAULT 'call',
     `created`  DATETIME                 NOT NULL,
@@ -16,6 +17,7 @@ id - unique chat identifier
 active - chat is active or not
 gpt - allow ChatGPT requests
 exclude - list of excluded users
+skip - list of skipped today users
 url - chat URL for calls
 url_text - text for chat URL
 created - timestamp of item create
@@ -24,5 +26,6 @@ updated - timestamp of item update
 Migrations:
 ALTER TABLE `chat` ADD COLUMN `url_text` VARCHAR(255) NOT NULL DEFAULT 'call';
 ALTER TABLE `chat` ADD COLUMN `gpt` SMALLINT NOT NULL DEFAULT 0;
+ALTER TABLE `chat` ADD COLUMN `skip` TEXT;
  */
 

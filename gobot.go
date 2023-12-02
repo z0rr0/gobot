@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"syscall"
+	_ "time/tzdata"
 
 	"github.com/z0rr0/gobot/config"
 	"github.com/z0rr0/gobot/serve"
