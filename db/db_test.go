@@ -3,6 +3,8 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"maps"
 	"testing"
 	"time"
 
@@ -13,18 +15,6 @@ const (
 	// dbPath is the path of temporary database file.
 	dbPath = "/tmp/gobot_db_test.sqlite"
 )
-
-func compareMap(m1, m2 map[string]struct{}) bool {
-	if len(m1) != len(m2) {
-		return false
-	}
-	for k := range m1 {
-		if _, ok := m2[k]; !ok {
-			return false
-		}
-	}
-	return true
-}
 
 func open() (*sql.DB, error) {
 	return sql.Open("sqlite3", dbPath)
@@ -47,6 +37,7 @@ func TestGet(t *testing.T) {
 		ID:      chatID,
 		Active:  true,
 		Exclude: "[\"user1\",\"user2\"]",
+		Skip:    "[\"user3\",\"user4\"]",
 		URL:     "https://github.com/",
 		URLText: "GitHub",
 		Created: now,
@@ -67,6 +58,61 @@ func TestGet(t *testing.T) {
 	}
 }
 
+func TestCleanSkip(t *testing.T) {
+	const chatID = "TestCleanSkip"
+
+	db, err := open()
+	if err != nil {
+		t.Fatalf("failed to open database: %s", err)
+	}
+	defer func() {
+		if e := db.Close(); e != nil {
+			t.Errorf("failed to close database: %s", e)
+		}
+	}()
+
+	ctx := context.Background()
+
+	chat, err := GetOrCreate(ctx, db, chatID)
+	if err != nil {
+		t.Fatalf("failed to get or create chat: %s", err)
+	}
+
+	err = chat.Upsert(ctx, db)
+	if err != nil {
+		t.Fatalf("failed to upsert chat: %s", err)
+	}
+
+	chat.AddSkip("test1")
+	chat.AddSkip("test2")
+
+	if err = chat.Update(ctx, db); err != nil {
+		t.Fatalf("failed to update chat: %s", err)
+	}
+
+	expected := "[\"test1\",\"test2\"]"
+	if chat.Skip != expected {
+		t.Errorf("failed compare skip string, current '%v' expected '%v'", chat.Skip, expected)
+	}
+
+	if err = CleanSkip(ctx, db); err != nil {
+		t.Fatalf("failed to clean skip: %s", err)
+	}
+
+	chat, err = Get(ctx, db, chatID)
+	if err != nil {
+		t.Fatalf("failed to get chat: %s", err)
+	}
+
+	if chat.Skip != "" {
+		t.Errorf("failed compare skip string, current '%v' expected ''", chat.Skip)
+	}
+
+	if chat.SkipUsers != nil {
+		t.Errorf("failed compare skip users, current '%v' expected nil", chat.SkipUsers)
+	}
+}
+
 func TestGetOrCreate(t *testing.T) {
 	const (
 		chatID          = "TestGetOrCreate"
@@ -84,13 +130,14 @@ func TestGetOrCreate(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now().UTC()
 	chat := Chat{
-		ID:      chatID,
-		Active:  true,
-		Exclude: "[\"user1\",\"user2\"]",
-		URL:     "https://github.com/",
-		URLText: "GitHub",
-		Created: now,
-		Updated: now,
+		ID:           chatID,
+		Active:       true,
+		ExcludeUsers: map[string]struct{}{"user1": {}, "user2": {}},
+		SkipUsers:    map[string]struct{}{"user3": {}, "user4": {}},
+		URL:          "https://github.com/",
+		URLText:      "GitHub",
+		Created:      now,
+		Updated:      now,
 	}
 	if err = chat.Upsert(ctx, db); err != nil {
 		t.Fatalf("failed to upsert chat: %s", err)
@@ -103,7 +150,7 @@ func TestGetOrCreate(t *testing.T) {
 		t.Error("got active chat")
 	}
 	_, err = Get(ctx, db, chatIDNotExists)
-	if err != sql.ErrNoRows {
+	if !errors.Is(err, sql.ErrNoRows) {
 		t.Error("got chat want ErrNoRows")
 	}
 	chatNew, err = GetOrCreate(ctx, db, chatID)
@@ -112,6 +159,24 @@ func TestGetOrCreate(t *testing.T) {
 	}
 	if chatNew.ID != chat.ID {
 		t.Errorf("got chat %+v, want %+v", chatNew, chat)
+	}
+
+	expected := "[\"user1\",\"user2\"]"
+	if chatNew.Exclude != expected {
+		t.Errorf("failed compare exclude string, current '%v' expected '%v'", chatNew.Exclude, expected)
+	}
+
+	expected = "[\"user3\",\"user4\"]"
+	if chatNew.Skip != expected {
+		t.Errorf("failed compare skip string, current '%v' expected '%v'", chatNew.Skip, expected)
+	}
+
+	if !maps.Equal(chatNew.ExcludeUsers, chat.ExcludeUsers) {
+		t.Fatalf("failed compare maps, current:\n%+v\n want\n%+v", chatNew.ExcludeUsers, chat.ExcludeUsers)
+	}
+
+	if !maps.Equal(chatNew.SkipUsers, chat.SkipUsers) {
+		t.Fatalf("failed compare maps, current:\n%+v\n want\n%+v", chatNew.SkipUsers, chat.SkipUsers)
 	}
 }
 
@@ -166,13 +231,14 @@ func TestChat_Update(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now().UTC()
 	chat := Chat{
-		ID:      chatID,
-		Active:  true,
-		Exclude: "[\"user1\",\"user2\"]",
-		URL:     "https://github.com/",
-		URLText: "GitHub",
-		Created: now,
-		Updated: now,
+		ID:           chatID,
+		Active:       true,
+		ExcludeUsers: map[string]struct{}{"user1": {}, "user2": {}},
+		SkipUsers:    map[string]struct{}{"user3": {}},
+		URL:          "https://github.com/",
+		URLText:      "GitHub",
+		Created:      now,
+		Updated:      now,
 	}
 	if err = chat.Upsert(ctx, db); err != nil {
 		t.Fatalf("failed to upsert chat: %s", err)
@@ -184,10 +250,12 @@ func TestChat_Update(t *testing.T) {
 	if !chat.Equal(dbChat) {
 		t.Errorf("got chat\n%+v, want\n%+v", dbChat, chat)
 	}
+
 	// change and update
 	chat.Active = false
 	chat.Created = time.Now().UTC()
-	chat.Exclude = "[\"user3\",\"user4\"]"
+	chat.AddExclude(map[string]struct{}{"user5": {}})
+	chat.AddSkip("user4")
 	chat.URL = "https://gitlab.com/"
 	chat.URLText = "GitLab"
 
@@ -218,7 +286,7 @@ func TestChat_ExcludeToMap(t *testing.T) {
 		t.Fatalf("failed to load exlclude: %v", err)
 	}
 	expected := map[string]struct{}{"user1": {}, "user2": {}}
-	if !compareMap(chat.ExcludeUsers, expected) {
+	if !maps.Equal(chat.ExcludeUsers, expected) {
 		t.Fatalf("failed compare maps, current:\n%+v\n want\n%+v", chat.ExcludeUsers, expected)
 	}
 }
@@ -237,7 +305,7 @@ func TestChat_ExcludeToString(t *testing.T) {
 	}
 	chat.AddExclude(map[string]struct{}{"user0": {}})
 	expected := map[string]struct{}{"user0": {}, "user1": {}, "user2": {}}
-	if !compareMap(chat.ExcludeUsers, expected) {
+	if !maps.Equal(chat.ExcludeUsers, expected) {
 		t.Fatalf("failed compare maps, current:\n%+v\n want\n%+v", chat.ExcludeUsers, expected)
 	}
 	if err := chat.ExcludeToString(); err != nil {
@@ -262,7 +330,7 @@ func TestChat_AddExclude(t *testing.T) {
 	chat.AddExclude(map[string]struct{}{"user0": {}, "user1": {}})
 	chat.AddExclude(map[string]struct{}{"user2": {}})
 	expected := map[string]struct{}{"user0": {}, "user1": {}, "user2": {}}
-	if !compareMap(chat.ExcludeUsers, expected) {
+	if !maps.Equal(chat.ExcludeUsers, expected) {
 		t.Fatalf("failed compare maps, current:\n%+v\n want\n%+v", chat.ExcludeUsers, expected)
 	}
 	if err := chat.ExcludeToString(); err != nil {
@@ -296,7 +364,7 @@ func TestChat_DelExclude(t *testing.T) {
 	// delete some value
 	chat.DelExclude(map[string]struct{}{"user2": {}})
 	expected := map[string]struct{}{"user0": {}, "user1": {}}
-	if !compareMap(chat.ExcludeUsers, expected) {
+	if !maps.Equal(chat.ExcludeUsers, expected) {
 		t.Fatalf("failed compare maps, current:\n%+v\n want\n%+v", chat.ExcludeUsers, expected)
 	}
 	if err := chat.ExcludeToString(); err != nil {

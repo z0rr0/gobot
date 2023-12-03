@@ -139,6 +139,11 @@ func Go(_ context.Context, e *Event) error {
 		if _, ok := e.Chat.ExcludeUsers[m.User.ID]; ok {
 			continue
 		}
+
+		if _, ok := e.Chat.SkipUsers[m.User.ID]; ok {
+			continue
+		}
+
 		if !botIDRegexp.MatchString(m.User.ID) {
 			names = append(names, fmt.Sprintf("@[%s]", m.User.ID))
 		}
@@ -367,12 +372,12 @@ func Skip(ctx context.Context, e *Event) error {
 		return e.SendMessage("no valid author user")
 	}
 
-	if _, ok := e.Chat.ExcludeUsers[authorUser]; ok {
+	if _, ok := e.Chat.SkipUsers[authorUser]; ok {
+		e.Chat.DelSkip(authorUser)
+		msg = "ok, you are in the list again"
+	} else {
 		e.Chat.AddSkip(authorUser)
 		msg = "ok, you will be skipped today"
-	} else {
-		e.Chat.DelSkip(authorUser)
-		msg = "ok, you will not be skipped today"
 	}
 
 	if err := e.Chat.Update(ctx, e.Cfg.DB); err != nil {

@@ -73,10 +73,10 @@ func main() {
 
 	p, stop := serve.New(c.M.Workers)
 	serve.Run(c, p, sigint, logInfo, logError)
-	stopSkip := skip.New(c, stop, logInfo, logError)
+	skipHandler := skip.New(c, stop, logInfo, logError)
 
 	<-stop
-	<-stopSkip
+	<-skipHandler.StopSkip
 
 	logInfo.Printf("stopped %s", Name)
 	if err = c.Close(); err != nil {

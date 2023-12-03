@@ -44,18 +44,14 @@ func Get(ctx context.Context, db *sql.DB, id string) (*Chat, error) {
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("chat scan: %w", err)
 	}
 
 	if err = stmt.Close(); err != nil {
 		return nil, fmt.Errorf("close exist statement: %w", err)
 	}
 
-	if err = chat.ExcludeToMap(); err != nil {
-		return nil, err
-	}
-
-	if err = chat.SkipToMap(); err != nil {
+	if err = chat.Unmarshal(); err != nil {
 		return nil, err
 	}
 
@@ -77,7 +73,7 @@ func GetOrCreate(ctx context.Context, db *sql.DB, id string) (*Chat, error) {
 	return chat, nil
 }
 
-// CleanSkip removes all skip columns from chats.
+// CleanSkip removes all skip columns from all chats.
 func CleanSkip(ctx context.Context, db *sql.DB) error {
 	const query = "UPDATE `chat` SET `skip`='' WHERE `skip` != '';"
 	stmt, err := db.PrepareContext(ctx, query)

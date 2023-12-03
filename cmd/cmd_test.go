@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -30,19 +31,6 @@ var (
 	}
 	defaultCtx = context.Background()
 )
-
-func compareSets(a, b map[string]struct{}) bool {
-	n, m := len(a), len(b)
-	if n != m {
-		return false
-	}
-	for v := range a {
-		if _, ok := b[v]; !ok {
-			return false
-		}
-	}
-	return true
-}
 
 func TestStart(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -410,7 +398,7 @@ func TestExclude(t *testing.T) {
 		t.Errorf("failed bot response='%s', want='%s'", msg, expected)
 	}
 	expectedExcluded := map[string]struct{}{"user1@my.team": {}, "user2@my.team": {}, "user3@my.team": {}}
-	if !compareSets(expectedExcluded, chat.ExcludeUsers) {
+	if !maps.Equal(expectedExcluded, chat.ExcludeUsers) {
 		t.Error("failed compare excluded users")
 	}
 	expected = "[\"user1@my.team\",\"user2@my.team\",\"user3@my.team\"]"
@@ -487,7 +475,7 @@ func TestInclude(t *testing.T) {
 		t.Errorf("failed msg='%s', want='%s'", msg, expected)
 	}
 	expectedExcluded := map[string]struct{}{"user1@my.team": {}}
-	if !compareSets(expectedExcluded, chat.ExcludeUsers) {
+	if !maps.Equal(expectedExcluded, chat.ExcludeUsers) {
 		t.Error("failed compare excluded users")
 	}
 	expected = "[\"user1@my.team\"]"
@@ -713,6 +701,86 @@ func TestVacation(t *testing.T) {
 	}
 }
 
+func TestSkip(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := "{\"msgId\": \"7083436385855602743\", \"ok\": true, " +
+			"\"from\": {\"firstName\": \"A\", \"lastName\": \"B\", \"userId\": \"author@my.team\"}}"
+		_, err := fmt.Fprint(w, response)
+		if err != nil {
+			t.Error(err)
+		}
+	})
+
+	s := httptest.NewServer(handler)
+	defer s.Close()
+
+	c, err := config.New(configPath, buildInfo, s)
+	if err != nil {
+		t.Fatalf("config.New: %v", err)
+	}
+	defer func() {
+		if errCfg := c.Close(); errCfg != nil {
+			t.Error(errCfg)
+		}
+	}()
+
+	chat := &db.Chat{ID: "TestSkip"}
+
+	// no author
+	e := &Event{Cfg: c, ChatEvent: &botgolang.Event{}, Chat: chat, debug: true}
+	if err = Skip(defaultCtx, e); err != nil {
+		t.Errorf("Skip: %v", err)
+	}
+
+	expected := "no valid author user"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	e.buffer.Reset()
+
+	if len(chat.SkipUsers) > 0 {
+		t.Errorf("failed chat.SkipUsers='%v', want empty", chat.SkipUsers)
+	}
+
+	payLoad := botgolang.EventPayload{
+		BaseEventPayload: botgolang.BaseEventPayload{
+			From: botgolang.Contact{User: botgolang.User{ID: "author@my.team"}},
+		},
+	}
+	e = &Event{Cfg: c, ChatEvent: &botgolang.Event{Payload: payLoad}, Chat: chat, debug: true}
+
+	// add author to skip users set
+	if err = Skip(defaultCtx, e); err != nil {
+		t.Errorf("Skip: %v", err)
+	}
+
+	expected = "@[author@my.team] ok, you will be skipped today"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	e.buffer.Reset()
+
+	if _, ok := chat.SkipUsers["author@my.team"]; !ok {
+		t.Errorf("not author in chat.SkipUsers: %v", chat.SkipUsers)
+	}
+
+	// remove author from skip-set users
+	if err = Skip(defaultCtx, e); err != nil {
+		t.Errorf("Vacation: %v", err)
+	}
+
+	expected = "@[author@my.team] ok, you are in the list again"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	e.buffer.Reset()
+
+	if len(chat.SkipUsers) > 0 {
+		t.Errorf("failed chat.SkipUsers='%v', want empty", chat.SkipUsers)
+	}
+}
+
 func TestEvent_ArgsUserIDs(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -749,7 +817,7 @@ func TestEvent_ArgsUserIDs(t *testing.T) {
 		t.Run(c.name, func(tt *testing.T) {
 			e := &Event{Arguments: c.input}
 			result := e.ArgsUserIDs()
-			if !compareSets(result, c.expected) {
+			if !maps.Equal(result, c.expected) {
 				tt.Errorf("failed case='%s' result='%v', expected='%v'", c.name, result, c.expected)
 			}
 		})

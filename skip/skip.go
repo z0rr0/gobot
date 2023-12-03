@@ -1,7 +1,6 @@
 package skip
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -9,45 +8,68 @@ import (
 	"github.com/z0rr0/gobot/db"
 )
 
-func New(c *config.Config, stopService <-chan struct{}, logInfo, logError *log.Logger) <-chan struct{} {
-	stopSkip := make(chan struct{})
-	go run(c, stopService, stopSkip, logInfo, logError)
-	return stopSkip
+// Handler is a skip handler.
+type Handler struct {
+	StopSkip   chan struct{}
+	forceClean chan struct{}
 }
 
-func run(c *config.Config, stopService <-chan struct{}, stopSkip chan<- struct{}, logInfo, logError *log.Logger) {
-	var duration = nextDayDuration(time.Now().In(c.Timezone))
+func New(c *config.Config, stopService <-chan struct{}, logInfo, logError *log.Logger) *Handler {
+	handler := &Handler{
+		StopSkip:   make(chan struct{}),
+		forceClean: make(chan struct{}),
+	}
+
+	go handler.run(c, stopService, logInfo, logError)
+	return handler
+}
+
+func (h *Handler) close() {
+	close(h.forceClean)
+	close(h.StopSkip)
+}
+
+func (h *Handler) run(c *config.Config, stopService <-chan struct{}, logInfo, logError *log.Logger) {
+	var duration = nextTimeout(time.Now().In(c.Timezone))
+	defer h.close()
+
+	timer := time.NewTimer(duration)
+	defer timer.Stop()
 
 	for {
 		select {
 		case <-stopService:
-			logInfo.Println("stop skip cron")
-			close(stopSkip)
-		case <-time.After(duration):
-			logInfo.Printf("skip tick after %v", duration)
-
-			if err := cleanSkip(c); err != nil {
-				logError.Printf("failed update: %v", err)
-				duration = time.Minute
-			} else {
-				duration = nextDayDuration(time.Now().In(c.Timezone))
+			logInfo.Println("stop skip-cron")
+			return
+		case <-timer.C:
+			logInfo.Printf("tick after %v", duration)
+			timer.Reset(cleanSkip(c, logError))
+		case <-h.forceClean:
+			if !timer.Stop() {
+				<-timer.C
 			}
+
+			duration = cleanSkip(c, logError)
+			timer.Reset(duration)
+
+			logInfo.Printf("force clean skip, new duration=%v", duration)
 		}
 	}
 }
 
-func nextDayDuration(ts time.Time) time.Duration {
+func nextTimeout(ts time.Time) time.Duration {
 	return time.Date(ts.Year(), ts.Month(), ts.Day()+1, 0, 0, 1, 0, ts.Location()).Sub(ts)
 }
 
-func cleanSkip(c *config.Config) error {
+func cleanSkip(c *config.Config, logError *log.Logger) time.Duration {
 	ctx, cancel := c.Context()
 	defer cancel()
 
 	err := db.CleanSkip(ctx, c.DB)
 	if err != nil {
-		return fmt.Errorf("clean skip: %w", err)
+		logError.Printf("failed clean skip: %v", err)
+		return time.Minute // try again in a minute
 	}
 
-	return nil
+	return nextTimeout(time.Now().In(c.Timezone))
 }

@@ -25,8 +25,8 @@ type Chat struct {
 
 // Equal returns true if the two chats are equal.
 func (chat *Chat) Equal(c *Chat) bool {
-	value := chat.ID == c.ID && chat.Active == c.Active && chat.Exclude == c.Exclude && chat.URL == c.URL
-	value = value && chat.URLText == c.URLText
+	value := chat.ID == c.ID && chat.Active == c.Active && chat.Exclude == c.Exclude && chat.Skip == c.Skip
+	value = value && chat.URL == c.URL && chat.URLText == c.URLText
 	return value && chat.Created.Equal(c.Created) // updated chan be change automatically
 }
 
@@ -107,14 +107,41 @@ func (chat *Chat) DelSkip(userID string) {
 	delete(chat.SkipUsers, userID)
 }
 
+// Marshal converts exclude and skip sets to strings.
+func (chat *Chat) Marshal() error {
+	if err := chat.ExcludeToString(); err != nil {
+		return err
+	}
+
+	if err := chat.SkipToString(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Unmarshal converts exclude and skip strings to sets.
+func (chat *Chat) Unmarshal() error {
+	if err := chat.ExcludeToMap(); err != nil {
+		return err
+	}
+
+	if err := chat.SkipToMap(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Update saves chat's info.
 func (chat *Chat) Update(ctx context.Context, db *sql.DB) error {
 	const query = "UPDATE `chat` " +
 		"SET `active`=?, `exclude`=?, `skip`=?, `url`=?, `url_text`=?, `created`=?, `updated`=? " +
 		"WHERE `id`=?"
-	if e := chat.ExcludeToString(); e != nil {
+	if e := chat.Marshal(); e != nil {
 		return e
 	}
+
 	return InTransaction(ctx, db, func(tx *sql.Tx) error {
 		stmt, err := tx.PrepareContext(ctx, query)
 		if err != nil {
@@ -126,6 +153,11 @@ func (chat *Chat) Update(ctx context.Context, db *sql.DB) error {
 		if err != nil {
 			return fmt.Errorf("upsert exec: %w", err)
 		}
+
+		if err = stmt.Close(); err != nil {
+			return fmt.Errorf("close exist statement: %w", err)
+		}
+
 		chat.Saved = true
 		return nil
 	})
@@ -137,11 +169,7 @@ func (chat *Chat) Upsert(ctx context.Context, db *sql.DB) error {
 		"(`id`, `active`, `exclude`, `skip`, `url`, `url_text`, `created`, `updated`)  VALUES (?,?,?,?,?,?,?,?) " +
 		"ON CONFLICT(id) DO UPDATE SET `active`=?, `updated`=?;"
 
-	if e := chat.ExcludeToString(); e != nil {
-		return e
-	}
-
-	if e := chat.SkipToString(); e != nil {
+	if e := chat.Marshal(); e != nil {
 		return e
 	}
 
@@ -157,6 +185,11 @@ func (chat *Chat) Upsert(ctx context.Context, db *sql.DB) error {
 		if err != nil {
 			return fmt.Errorf("upsert exec: %w", err)
 		}
+
+		if err = stmt.Close(); err != nil {
+			return fmt.Errorf("close exist statement: %w", err)
+		}
+
 		chat.Saved = true
 		return nil
 	})
