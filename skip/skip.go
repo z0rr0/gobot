@@ -10,70 +10,75 @@ import (
 
 // Handler is a skip handler.
 type Handler struct {
-	StopSkip   chan struct{}
-	forceClean chan struct{}
+	Stop  chan struct{}
+	clean chan struct{}
 }
 
+// New creates a new skip handler and starts it.
 func New(c *config.Config, stopService <-chan struct{}, logInfo, logError *log.Logger) *Handler {
 	handler := &Handler{
-		StopSkip:   make(chan struct{}),
-		forceClean: make(chan struct{}),
+		Stop:  make(chan struct{}),
+		clean: make(chan struct{}),
 	}
 
-	go handler.run(c, stopService, logInfo, logError)
+	go handler.start(c, stopService, logInfo, logError)
 	return handler
 }
 
-func (h *Handler) close() {
-	close(h.forceClean)
-	close(h.StopSkip)
+// stop stops skip daemon. It closes flag channels as a signal for stop for external services.
+func (h *Handler) stop() {
+	close(h.clean)
+	close(h.Stop)
 }
 
-func (h *Handler) run(c *config.Config, stopService <-chan struct{}, logInfo, logError *log.Logger) {
+// start runs skip daemon.
+func (h *Handler) start(c *config.Config, stopService <-chan struct{}, logInfo, logError *log.Logger) {
 	var (
-		now      = time.Now().In(c.Timezone)
-		duration = nextTimeout(now)
+		now     = time.Now().In(c.Timezone)
+		timeout = nextTimeout(now)
 	)
 
-	defer h.close()
-	logInfo.Printf("skip-daemon [%v] now=%v, duration=%v", c.Timezone, now.Truncate(time.Second), duration)
+	defer h.stop()
+	logInfo.Printf("start skip-daemon [%v] now=%v, timeout=%v", c.Timezone, now.Truncate(time.Second), timeout)
 
-	timer := time.NewTimer(duration)
+	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 
 	for {
 		select {
 		case <-stopService:
-			logInfo.Println("stop skip-cron")
+			logInfo.Println("stop skip-daemon")
 			return
 		case <-timer.C:
-			logInfo.Printf("tick after %v", duration)
-			timer.Reset(cleanSkip(c, logError))
-		case <-h.forceClean:
+			logInfo.Printf("tick after %v", timeout)
+			timer.Reset(clean(c, logError))
+		case <-h.clean:
 			if !timer.Stop() {
 				<-timer.C
 			}
 
-			duration = cleanSkip(c, logError)
-			timer.Reset(duration)
+			timeout = clean(c, logError)
+			timer.Reset(timeout)
 
-			logInfo.Printf("force clean skip, new duration=%v", duration)
+			logInfo.Printf("force clean skip, new timeout=%v", timeout)
 		}
 	}
 }
 
+// nextTimeout returns next timeout for clean.
 func nextTimeout(ts time.Time) time.Duration {
 	return time.Date(ts.Year(), ts.Month(), ts.Day()+1, 0, 0, 1, 0, ts.Location()).Sub(ts)
 }
 
-func cleanSkip(c *config.Config, logError *log.Logger) time.Duration {
+// clean removes all skip users from chats.
+func clean(c *config.Config, logError *log.Logger) time.Duration {
 	ctx, cancel := c.Context()
 	defer cancel()
 
 	err := db.CleanSkip(ctx, c.DB)
 	if err != nil {
 		logError.Printf("failed clean skip: %v", err)
-		return time.Minute // try again in a minute
+		return 5 * time.Minute // retry again in 5 minutes
 	}
 
 	return nextTimeout(time.Now().In(c.Timezone))

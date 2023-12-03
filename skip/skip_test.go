@@ -56,10 +56,10 @@ func TestNew(t *testing.T) {
 	stopService := make(chan struct{})
 	h := New(c, stopService, testLogger, testLogger)
 
-	h.forceClean <- struct{}{}
+	h.clean <- struct{}{}
 
 	close(stopService)
-	<-h.StopSkip
+	<-h.Stop
 }
 
 func TestNextTimeout(t *testing.T) {

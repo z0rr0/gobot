@@ -76,7 +76,7 @@ func main() {
 	serve.Run(c, p, sigint, logInfo, logError)
 
 	<-stop
-	<-skipHandler.StopSkip
+	<-skipHandler.Stop
 
 	logInfo.Printf("stopped %s", Name)
 	if err = c.Close(); err != nil {
