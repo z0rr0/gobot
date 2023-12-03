@@ -72,8 +72,8 @@ func main() {
 	defer close(sigint)
 
 	p, stop := serve.New(c.M.Workers)
-	serve.Run(c, p, sigint, logInfo, logError)
 	skipHandler := skip.New(c, stop, logInfo, logError)
+	serve.Run(c, p, sigint, logInfo, logError)
 
 	<-stop
 	<-skipHandler.StopSkip

@@ -30,8 +30,13 @@ func (h *Handler) close() {
 }
 
 func (h *Handler) run(c *config.Config, stopService <-chan struct{}, logInfo, logError *log.Logger) {
-	var duration = nextTimeout(time.Now().In(c.Timezone))
+	var (
+		now      = time.Now().In(c.Timezone)
+		duration = nextTimeout(now)
+	)
+
 	defer h.close()
+	logInfo.Printf("skip-daemon [%v] now=%v, duration=%v", c.Timezone, now.Truncate(time.Second), duration)
 
 	timer := time.NewTimer(duration)
 	defer timer.Stop()
