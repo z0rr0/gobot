@@ -8,7 +8,9 @@ import (
 	"net/url"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	botgolang "github.com/mail-ru-im/bot-golang"
 
@@ -134,7 +136,10 @@ func Go(_ context.Context, e *Event) error {
 	if err != nil {
 		return fmt.Errorf("can't get chat members: %v", err)
 	}
+
 	names := make([]string, 0, len(members)-1)
+	noDaysUsers := e.Chat.WeekDays[time.Now().In(e.Cfg.Timezone).Weekday()]
+
 	for _, m := range members {
 		if _, ok := e.Chat.ExcludeUsers[m.User.ID]; ok {
 			continue
@@ -144,21 +149,29 @@ func Go(_ context.Context, e *Event) error {
 			continue
 		}
 
+		if _, ok := noDaysUsers[m.User.ID]; ok {
+			continue
+		}
+
 		if !botIDRegexp.MatchString(m.User.ID) {
 			names = append(names, fmt.Sprintf("@[%s]", m.User.ID))
 		}
 	}
+
 	if len(names) == 0 {
 		return e.SendMessage("no users :(")
 	}
+
 	r := rand.New(e.Cfg.RandSource)
 	r.Shuffle(len(names), func(i, j int) {
 		names[i], names[j] = names[j], names[i]
 	})
+
 	msg := strings.Join(names, "\n")
 	if e.Chat.URL != "" {
 		return e.SendURLMessage(msg, "📞 "+e.Chat.URLText, e.Chat.URL)
 	}
+
 	return e.SendMessage(msg)
 }
 
@@ -382,6 +395,106 @@ func Skip(ctx context.Context, e *Event) error {
 
 	if err := e.Chat.Update(ctx, e.Cfg.DB); err != nil {
 		return fmt.Errorf("can't handle command: %v", err)
+	}
+
+	return e.SendMessage(fmt.Sprintf("@[%s] %s", authorUser, msg))
+}
+
+// reduceNoDays removes authorUser user from all days.
+func reduceNoDays(ctx context.Context, authorUser string, e *Event) error {
+	for day, users := range e.Chat.WeekDays {
+		if _, ok := users[authorUser]; ok {
+			delete(users, authorUser)
+
+			if len(users) == 0 {
+				delete(e.Chat.WeekDays, day)
+			}
+		}
+	}
+
+	if err := e.Chat.Update(ctx, e.Cfg.DB); err != nil {
+		return fmt.Errorf("can't handle command: %v", err)
+	}
+
+	return nil
+}
+
+// extendNoDays updates setting for authorUser user for NoDays.
+func extendNoDays(ctx context.Context, authorUser string, e *Event) (string, error) {
+	var days = strings.Split(strings.TrimSpace(e.Arguments), " ")
+
+	if len(days) == 0 {
+		return "no days input", nil
+	}
+
+	weekDays := make(map[time.Weekday]struct{})
+	sunday, saturday := int(time.Sunday), int(time.Saturday)
+
+	for _, day := range days {
+		day = strings.TrimSpace(day)
+		if day == "" {
+			continue
+		}
+
+		i, err := strconv.Atoi(day)
+		if err != nil {
+			return fmt.Sprintf("incorrect interger day number: %s", day), nil
+		}
+
+		if i < sunday || i > saturday {
+			return fmt.Sprintf("incorrect week day number: %q, it must be from sunday=%d to saturday=%d", day, sunday, saturday), nil
+		}
+
+		wd := time.Weekday(i)
+		weekDays[wd] = struct{}{}
+
+		if _, ok := e.Chat.WeekDays[wd]; !ok {
+			if e.Chat.WeekDays == nil {
+				e.Chat.WeekDays = make(map[time.Weekday]map[string]struct{})
+			}
+			e.Chat.WeekDays[wd] = make(map[string]struct{})
+		}
+
+		e.Chat.WeekDays[wd][authorUser] = struct{}{}
+	}
+
+	if len(weekDays) == 0 {
+		return "no days", nil
+	}
+
+	for day, users := range e.Chat.WeekDays {
+		if _, ok := weekDays[day]; !ok {
+			delete(users, authorUser)
+
+			// no other users in current day
+			if len(users) == 0 {
+				delete(e.Chat.WeekDays, day)
+			}
+		}
+	}
+
+	if err := e.Chat.Update(ctx, e.Cfg.DB); err != nil {
+		return "", fmt.Errorf("can't handle command: %v", err)
+	}
+
+	return "days are set", nil
+}
+
+func NoDays(ctx context.Context, e *Event) error {
+	var (
+		authorUser = e.ChatEvent.Payload.From.User.ID
+		msg        = "days are cleaned"
+		err        error
+	)
+
+	if e.Arguments == "" {
+		err = reduceNoDays(ctx, authorUser, e)
+	} else {
+		msg, err = extendNoDays(ctx, authorUser, e)
+	}
+
+	if err != nil {
+		return err
 	}
 
 	return e.SendMessage(fmt.Sprintf("@[%s] %s", authorUser, msg))

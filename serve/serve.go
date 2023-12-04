@@ -36,6 +36,7 @@ var (
 		"/gpt":      cmd.GPT,
 		"/ygpt":     cmd.YandexGPT,
 		"/skip":     cmd.Skip,
+		"/nodays":   cmd.NoDays,
 	}
 	// notSupportedCommands is commands which can't be stopped
 	notStoppedCommands = map[string]bool{"/start": true}
@@ -51,6 +52,7 @@ var (
 		"/gpt":      true,
 		"/ygpt":     true,
 		"/skip":     true,
+		"/nodays":   true,
 	}
 )
 
