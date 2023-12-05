@@ -38,6 +38,7 @@ func TestGet(t *testing.T) {
 		Active:  true,
 		Exclude: "[\"user1\",\"user2\"]",
 		Skip:    "[\"user3\",\"user4\"]",
+		Days:    "{\"2\":[\"user1\"]",
 		URL:     "https://github.com/",
 		URLText: "GitHub",
 		Created: now,
@@ -134,6 +135,7 @@ func TestGetOrCreate(t *testing.T) {
 		Active:       true,
 		ExcludeUsers: map[string]struct{}{"user1": {}, "user2": {}},
 		SkipUsers:    map[string]struct{}{"user3": {}, "user4": {}},
+		WeekDays:     map[time.Weekday]map[string]struct{}{time.Tuesday: {"user1": {}}},
 		URL:          "https://github.com/",
 		URLText:      "GitHub",
 		Created:      now,
@@ -153,6 +155,7 @@ func TestGetOrCreate(t *testing.T) {
 	if !errors.Is(err, sql.ErrNoRows) {
 		t.Error("got chat want ErrNoRows")
 	}
+
 	chatNew, err = GetOrCreate(ctx, db, chatID)
 	if err != nil {
 		t.Fatalf("failed to get or create chat: %s", err)
@@ -169,6 +172,11 @@ func TestGetOrCreate(t *testing.T) {
 	expected = "[\"user3\",\"user4\"]"
 	if chatNew.Skip != expected {
 		t.Errorf("failed compare skip string, current '%v' expected '%v'", chatNew.Skip, expected)
+	}
+
+	expected = "{\"2\":[\"user1\"]}"
+	if chatNew.Days != expected {
+		t.Errorf("failed compare days string, current %q expected %q", chatNew.Days, expected)
 	}
 
 	if !maps.Equal(chatNew.ExcludeUsers, chat.ExcludeUsers) {
@@ -235,6 +243,7 @@ func TestChat_Update(t *testing.T) {
 		Active:       true,
 		ExcludeUsers: map[string]struct{}{"user1": {}, "user2": {}},
 		SkipUsers:    map[string]struct{}{"user3": {}},
+		WeekDays:     map[time.Weekday]map[string]struct{}{time.Tuesday: {"user1": {}}},
 		URL:          "https://github.com/",
 		URLText:      "GitHub",
 		Created:      now,
@@ -258,14 +267,17 @@ func TestChat_Update(t *testing.T) {
 	chat.AddSkip("user4")
 	chat.URL = "https://gitlab.com/"
 	chat.URLText = "GitLab"
+	chat.WeekDays[time.Wednesday] = map[string]struct{}{"user2": {}}
 
 	if err = chat.Update(ctx, db); err != nil {
 		t.Fatalf("failed to update chat: %s", err)
 	}
+
 	dbChat, err = Get(ctx, db, chatID)
 	if err != nil {
 		t.Fatalf("failed to get chat: %s", err)
 	}
+
 	if !chat.Equal(dbChat) {
 		t.Errorf("got chat\n%+v\n want\n%+v", dbChat, chat)
 	}

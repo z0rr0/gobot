@@ -29,7 +29,7 @@ type Chat struct {
 // Equal returns true if the two chats are equal.
 func (chat *Chat) Equal(c *Chat) bool {
 	value := chat.ID == c.ID && chat.Active == c.Active && chat.Exclude == c.Exclude && chat.Skip == c.Skip
-	value = value && chat.URL == c.URL && chat.URLText == c.URLText
+	value = value && chat.Days == c.Days && chat.URL == c.URL && chat.URLText == c.URLText
 	return value && chat.Created.Equal(c.Created) // updated chan be change automatically
 }
 

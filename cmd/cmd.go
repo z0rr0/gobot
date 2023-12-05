@@ -427,7 +427,10 @@ func extendNoDays(ctx context.Context, authorUser string, e *Event) (string, err
 		return "no days input", nil
 	}
 
+	sort.Strings(days)
+
 	weekDays := make(map[time.Weekday]struct{})
+	weekDaysNames := make([]string, 0, len(days))
 	sunday, saturday := int(time.Sunday), int(time.Saturday)
 
 	for _, day := range days {
@@ -447,6 +450,7 @@ func extendNoDays(ctx context.Context, authorUser string, e *Event) (string, err
 
 		wd := time.Weekday(i)
 		weekDays[wd] = struct{}{}
+		weekDaysNames = append(weekDaysNames, wd.String())
 
 		if _, ok := e.Chat.WeekDays[wd]; !ok {
 			if e.Chat.WeekDays == nil {
@@ -477,7 +481,7 @@ func extendNoDays(ctx context.Context, authorUser string, e *Event) (string, err
 		return "", fmt.Errorf("can't handle command: %v", err)
 	}
 
-	return "days are set", nil
+	return "days are set: " + strings.Join(weekDaysNames, ", "), nil
 }
 
 func NoDays(ctx context.Context, e *Event) error {

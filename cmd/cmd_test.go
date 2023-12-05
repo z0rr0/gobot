@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	botgolang "github.com/mail-ru-im/bot-golang"
 
@@ -778,6 +779,126 @@ func TestSkip(t *testing.T) {
 
 	if len(chat.SkipUsers) > 0 {
 		t.Errorf("failed chat.SkipUsers='%v', want empty", chat.SkipUsers)
+	}
+}
+
+func TestNoDays(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := "{\"msgId\": \"7083436385855602743\", \"ok\": true, " +
+			"\"from\": {\"firstName\": \"A\", \"lastName\": \"B\", \"userId\": \"author@my.team\"}}"
+		_, err := fmt.Fprint(w, response)
+		if err != nil {
+			t.Error(err)
+		}
+	})
+
+	s := httptest.NewServer(handler)
+	defer s.Close()
+
+	c, err := config.New(configPath, buildInfo, s)
+	if err != nil {
+		t.Fatalf("config.New: %v", err)
+	}
+	defer func() {
+		if errCfg := c.Close(); errCfg != nil {
+			t.Error(errCfg)
+		}
+	}()
+
+	chat := &db.Chat{ID: "TestNoDays"}
+
+	// no author
+	e := &Event{Cfg: c, ChatEvent: &botgolang.Event{}, Chat: chat, debug: true}
+	if err = Skip(defaultCtx, e); err != nil {
+		t.Errorf("Skip: %v", err)
+	}
+
+	expected := "no valid author user"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	e.buffer.Reset()
+
+	if len(chat.WeekDays) > 0 {
+		t.Errorf("failed chat.WeekDays='%v', want empty", chat.WeekDays)
+	}
+
+	payLoad := botgolang.EventPayload{
+		BaseEventPayload: botgolang.BaseEventPayload{
+			From: botgolang.Contact{User: botgolang.User{ID: "author@my.team"}},
+		},
+	}
+	e = &Event{Cfg: c, ChatEvent: &botgolang.Event{Payload: payLoad}, Chat: chat, Arguments: "2 5", debug: true}
+
+	// add noDays for author
+	if err = NoDays(defaultCtx, e); err != nil {
+		t.Errorf("NoDays: %v", err)
+	}
+
+	expected = "@[author@my.team] days are set: Tuesday, Friday"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	e.buffer.Reset()
+
+	expectedMap := map[time.Weekday]map[string]struct{}{
+		time.Tuesday: {"author@my.team": {}},
+		time.Friday:  {"author@my.team": {}},
+	}
+
+	if len(chat.WeekDays) != len(expectedMap) {
+		t.Errorf("failed chat.WeekDays='%v', want='%v'", chat.WeekDays, expectedMap)
+	}
+
+	for day, m := range expectedMap {
+		chatMap, ok := chat.WeekDays[day]
+
+		if ok {
+			if !maps.Equal(chatMap, m) {
+				t.Errorf("failed chat.WeekDays[%v]='%v', want='%v'", day, chatMap, m)
+			}
+		} else {
+			t.Errorf("failed chat.WeekDays[%v]", day)
+		}
+	}
+
+	// update user's noDays
+	e = &Event{Cfg: c, ChatEvent: &botgolang.Event{Payload: payLoad}, Chat: chat, Arguments: "3", debug: true}
+	if err = NoDays(defaultCtx, e); err != nil {
+		t.Errorf("NoDays: %v", err)
+	}
+
+	expected = "@[author@my.team] days are set: Wednesday"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	e.buffer.Reset()
+
+	expected = "{\"3\":[\"author@my.team\"]}"
+	if chat.Days != expected {
+		t.Errorf("failed chat.Days='%s', want='%s'", chat.Days, expected)
+	}
+
+	// reset user's noDays
+	e = &Event{Cfg: c, ChatEvent: &botgolang.Event{Payload: payLoad}, Chat: chat, debug: true}
+	if err = NoDays(defaultCtx, e); err != nil {
+		t.Errorf("NoDays: %v", err)
+	}
+
+	expected = "@[author@my.team] days are cleaned"
+	if msg := e.buffer.String(); msg != expected {
+		t.Errorf("failed msg='%s', want='%s'", msg, expected)
+	}
+	e.buffer.Reset()
+
+	expected = ""
+	if chat.Days != expected {
+		t.Errorf("failed chat.Days='%s', want='%s'", chat.Days, expected)
+	}
+
+	if len(chat.WeekDays) != 0 {
+		t.Errorf("failed chat.WeekDays='%v', want empty", chat.WeekDays)
 	}
 }
 
