@@ -22,7 +22,7 @@ var (
 		botgolang.EDITED_MESSAGE: true,
 	}
 	// allowedCommands is commands for handling bots actions
-	allowedCommands = map[string]func(context.Context, *cmd.Event) error{
+	allowedCommands = map[string]HandlerType{
 		"/start":    cmd.Start,
 		"/stop":     cmd.Stop,
 		"/version":  cmd.Version,
@@ -54,6 +54,9 @@ var (
 		"/skip":     true,
 		"/nodays":   true,
 	}
+
+	// syncCmd is a global map of chats which should be locked during command execution.
+	syncCmd = NewSyncCommands([]string{"/exclude", "/include", "/link", "/reset", "/vacation", "/skip", "/nodays"})
 )
 
 // Payload is a struct for events payload.
@@ -75,12 +78,19 @@ func handle(p Payload) (bool, error) {
 	if !allowedEvents[p.Event.Type] {
 		return false, nil
 	}
+
 	argsStr := strings.SplitN(p.Event.Payload.Text, " ", 2)
 	cmdName := strings.Trim(argsStr[0], " ")
+
 	handler, ok := allowedCommands[cmdName]
 	if !ok {
 		return false, nil
 	}
+
+	// we can wait for a lock here before any db requests
+	// if some not thread-safe commands are executed for same chats
+	handler = syncCmd.Decorate(cmdName, p.Event.Payload.Chat.ID, handler)
+
 	ctx, cancel := p.Cfg.Context()
 	defer cancel()
 
@@ -165,10 +175,12 @@ func Run(c *config.Config, p chan<- Payload, sigint <-chan os.Signal, logInfo, l
 		ctx, cancel = context.WithCancel(context.Background())
 		events      = c.Bt.GetUpdatesChannel(ctx)
 	)
+
 	defer func() {
 		close(p)
 		cancel()
 	}()
+
 	for {
 		select {
 		case s := <-sigint:
