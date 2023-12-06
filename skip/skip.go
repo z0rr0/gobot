@@ -37,17 +37,24 @@ func (h *Handler) start(c *config.Config, stopService <-chan struct{}, logInfo, 
 		now     = time.Now().In(c.Timezone)
 		timeout = nextTimeout(now)
 	)
-
-	defer h.stop()
 	logInfo.Printf("start skip-daemon [%v] now=%v, timeout=%v", c.Timezone, now.Truncate(time.Second), timeout)
 
+	defer func() {
+		h.stop()
+		logInfo.Println("stop skip-daemon")
+	}()
+
 	timer := time.NewTimer(timeout)
-	defer timer.Stop()
+	defer func() {
+		if !timer.Stop() {
+			// drain timer channel, if it has already expired or been stopped
+			<-timer.C
+		}
+	}()
 
 	for {
 		select {
 		case <-stopService:
-			logInfo.Println("stop skip-daemon")
 			return
 		case <-timer.C:
 			logInfo.Printf("tick after %v", timeout)
