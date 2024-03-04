@@ -62,10 +62,7 @@ func main() {
 		logInfo.SetOutput(c.L.Output)
 		logError.SetOutput(c.L.Output)
 	}
-	logInfo.Printf(
-		"start process (secure random=%v)\n%v\n\nPID file: %s\nLOG file: %s",
-		c.M.SecureRandom, versionInfo, c.L.PidFile, c.L.LogFile,
-	)
+	logInfo.Printf("start process \n%v\n\nPID file: %s\nLOG file: %s", versionInfo, c.L.PidFile, c.L.LogFile)
 
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt, os.Signal(syscall.SIGTERM), os.Signal(syscall.SIGQUIT))

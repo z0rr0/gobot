@@ -142,17 +142,17 @@ type Config struct {
 
 // New returns new configuration.
 func New(fileName string, b *BuildInfo, server *httptest.Server) (*Config, error) {
-	fullPath, err := filepath.Abs(strings.Trim(fileName, " "))
+	const (
+		testConfig = "/tmp/gobot_config_test.toml"
+		dockerDir  = "/data/gobot"
+	)
+
+	fullPath, err := CleanFileName(fileName, testConfig, dockerDir)
 	if err != nil {
 		return nil, fmt.Errorf("config file: %w", err)
 	}
 
-	_, err = os.Stat(fullPath)
-	if err != nil {
-		return nil, fmt.Errorf("config existing: %w", err)
-	}
-
-	data, err := os.ReadFile(fullPath)
+	data, err := os.ReadFile(fullPath) // #nosec G304 - file name is checked by CleanFileName
 	if err != nil {
 		return nil, fmt.Errorf("config read: %w", err)
 	}
@@ -179,7 +179,7 @@ func New(fileName string, b *BuildInfo, server *httptest.Server) (*Config, error
 	}
 
 	if err = c.parseTimezone(); err != nil {
-		return nil, fmt.Errorf("Timezone parsing: %w", err)
+		return nil, fmt.Errorf("timezone parsing: %w", err)
 	}
 
 	client := http.DefaultClient
@@ -232,24 +232,26 @@ func (c *Config) Context() (context.Context, context.CancelFunc) {
 
 // initLog initializes logging.
 func (c *Config) initLog() error {
+	const tmpDir = "/tmp"
+
 	if c.L.PidFile != "" {
-		fullPath, err := filepath.Abs(strings.Trim(c.L.PidFile, " "))
+		fullPath, err := CleanFileName(strings.Trim(c.L.PidFile, " "), tmpDir)
 		if err != nil {
 			return fmt.Errorf("config file PID: %Output", err)
 		}
 
-		err = os.WriteFile(fullPath, []byte(fmt.Sprintf("%d", os.Getpid())), 0644)
+		err = os.WriteFile(fullPath, []byte(fmt.Sprintf("%d", os.Getpid())), 0600)
 		if err != nil {
 			return fmt.Errorf("PID write: %Output", err)
 		}
 	}
 	if c.L.LogFile != "" {
-		fullPath, err := filepath.Abs(strings.Trim(c.L.LogFile, " "))
+		fullPath, err := CleanFileName(strings.Trim(c.L.LogFile, " "), tmpDir)
 		if err != nil {
 			return fmt.Errorf("config file Log: %Output", err)
 		}
 
-		f, err := os.OpenFile(fullPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+		f, err := os.OpenFile(fullPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600) // #nosec G304 - file name is checked by CleanFileName
 		if err != nil {
 			return fmt.Errorf("open log: %Output", err)
 		}
@@ -321,4 +323,26 @@ func (c *Config) parseTimezone() error {
 
 	c.Timezone = loc
 	return nil
+}
+
+// CleanFileName returns clean file name or error if file name is not allowed.
+func CleanFileName(fileName string, allowedPaths ...string) (string, error) {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("get current dir: %w", err)
+	}
+
+	cleanPath := filepath.Clean(strings.Trim(fileName, " "))
+
+	if filepath.IsAbs(cleanPath) {
+		for _, allowedPath := range allowedPaths {
+			if strings.HasPrefix(cleanPath, allowedPath) {
+				return cleanPath, nil
+			}
+		}
+
+		return "", fmt.Errorf("file %q has relative path and not in the allowed directories", cleanPath)
+	}
+
+	return filepath.Join(currentDir, cleanPath), nil
 }

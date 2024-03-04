@@ -158,16 +158,21 @@ func Go(_ context.Context, e *Event) error {
 		}
 	}
 
-	if len(names) == 0 {
+	count := len(names)
+	if count == 0 {
 		return e.SendMessage("no users :(")
 	}
 
-	r := rand.New(e.Cfg.RandSource)
+	r := rand.New(e.Cfg.RandSource) // #nosec G404 - it isn't security sensitive, use real or pseudo-random
 	r.Shuffle(len(names), func(i, j int) {
 		names[i], names[j] = names[j], names[i]
 	})
 
 	msg := strings.Join(names, "\n")
+	if count > 1 {
+		msg += fmt.Sprintf("\n%d participants", count)
+	}
+
 	if e.Chat.URL != "" {
 		return e.SendURLMessage(msg, "📞 "+e.Chat.URLText, e.Chat.URL)
 	}

@@ -305,8 +305,8 @@ func TestGo(t *testing.T) {
 	}
 	// no users order guarantee, example "@[user1@my.team]\n@[user2@my.team]"
 	respMsg := e.buffer.String()
-	if !(len(respMsg) == 33 && strings.HasPrefix(respMsg, "@[user") && strings.HasSuffix(respMsg, "@my.team]")) {
-		t.Errorf("failed bot response='%s'", respMsg)
+	if n := len(respMsg); !(n == 48 && strings.HasPrefix(respMsg, "@[user") && strings.HasSuffix(respMsg, "2 participants")) {
+		t.Errorf("failed bot response [%d] ='%s'", n, respMsg)
 	}
 	e.buffer.Reset()
 	// with exclude
@@ -440,8 +440,8 @@ func TestInclude(t *testing.T) {
 	}
 	// no users order guarantee, example "@[user1@my.team]\n@[user2@my.team]"
 	respMsg := e.buffer.String()
-	if !(len(respMsg) == 33 && strings.HasPrefix(respMsg, "@[user") && strings.HasSuffix(respMsg, "@my.team]")) {
-		t.Errorf("failed bot response='%s'", respMsg)
+	if n := len(respMsg); !(n == 48 && strings.HasPrefix(respMsg, "@[user") && strings.HasSuffix(respMsg, "2 participants")) {
+		t.Errorf("failed bot response [%d] ='%s'", n, respMsg)
 	}
 	e.buffer.Reset()
 	// no excluded users
