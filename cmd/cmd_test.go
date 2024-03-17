@@ -303,33 +303,41 @@ func TestGo(t *testing.T) {
 	if err = Go(defaultCtx, e); err != nil {
 		t.Errorf("Go: %v", err)
 	}
-	// no users order guarantee, example "@[user1@my.team]\n@[user2@my.team]"
+
+	// no users order guarantee, example "1. @[user1@my.team]\n2. @[user2@my.team]"
 	respMsg := e.buffer.String()
-	if n := len(respMsg); !(n == 48 && strings.HasPrefix(respMsg, "@[user") && strings.HasSuffix(respMsg, "2 participants")) {
+
+	if n := len(respMsg); !(n == 39 && strings.HasPrefix(respMsg[3:], "@[user")) {
 		t.Errorf("failed bot response [%d] ='%s'", n, respMsg)
 	}
 	e.buffer.Reset()
+
 	// with exclude
 	chat.ExcludeUsers = map[string]struct{}{"user1@my.team": {}}
 	if err = Go(defaultCtx, e); err != nil {
 		t.Errorf("Go: %v", err)
 	}
-	expected := "@[user2@my.team]"
+
+	expected := "1. @[user2@my.team]"
 	if msg := e.buffer.String(); msg != expected {
 		t.Errorf("failed bot response='%s', want='%s'", msg, expected)
 	}
 	e.buffer.Reset()
+
 	// with url
 	chat.URL = "https://github.com/z0rr0/gobot"
 	if err = Go(defaultCtx, e); err != nil {
 		t.Errorf("Go: %v", err)
 	}
+
 	if msg := e.buffer.String(); msg != expected {
 		t.Errorf("failed bot response='%s', want='%s'", msg, expected)
 	}
+
 	e.buffer.Reset()
 	// all users excluded
 	chat.ExcludeUsers = map[string]struct{}{"user1@my.team": {}, "user2@my.team": {}}
+
 	if err = Go(defaultCtx, e); err != nil {
 		t.Errorf("Go: %v", err)
 	}
@@ -438,9 +446,9 @@ func TestInclude(t *testing.T) {
 	if err = Include(defaultCtx, e); err != nil {
 		t.Errorf("Exclude: %v", err)
 	}
-	// no users order guarantee, example "@[user1@my.team]\n@[user2@my.team]"
+	// no users order guarantee, example "1. @[user1@my.team]\n2. @[user2@my.team]"
 	respMsg := e.buffer.String()
-	if n := len(respMsg); !(n == 48 && strings.HasPrefix(respMsg, "@[user") && strings.HasSuffix(respMsg, "2 participants")) {
+	if n := len(respMsg); !(n == 39 && strings.HasPrefix(respMsg[3:], "@[user")) {
 		t.Errorf("failed bot response [%d] ='%s'", n, respMsg)
 	}
 	e.buffer.Reset()

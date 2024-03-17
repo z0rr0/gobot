@@ -168,10 +168,13 @@ func Go(_ context.Context, e *Event) error {
 		names[i], names[j] = names[j], names[i]
 	})
 
-	msg := strings.Join(names, "\n")
-	if count > 1 {
-		msg += fmt.Sprintf("\n%d participants", count)
+	var b strings.Builder
+
+	for i, name := range names {
+		b.WriteString(fmt.Sprintf("%d. %s\n", i+1, name))
 	}
+
+	msg := strings.TrimSuffix(b.String(), "\n")
 
 	if e.Chat.URL != "" {
 		return e.SendURLMessage(msg, "📞 "+e.Chat.URLText, e.Chat.URL)
