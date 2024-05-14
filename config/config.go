@@ -79,7 +79,7 @@ func (gpt *GPT) Response(ctx context.Context, content string) (string, error) {
 	}
 
 	request := &aoapi.CompletionRequest{
-		Model:       aoapi.ModelGPT4Preview,
+		Model:       aoapi.ModelGPT4o,
 		Messages:    []aoapi.Message{{Role: aoapi.RoleUser, Content: content}},
 		MaxTokens:   gpt.MaxTokens,
 		Temperature: &gpt.Temperature,
