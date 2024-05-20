@@ -163,7 +163,7 @@ func Go(_ context.Context, e *Event) error {
 		return e.SendMessage("no users :(")
 	}
 
-	r := rand.New(e.Cfg.RandSource)
+	r := rand.New(e.Cfg.RandSource) // #nosec G404 - it isn't security sensitive, use real or pseudo-random
 	r.Shuffle(len(names), func(i, j int) {
 		names[i], names[j] = names[j], names[i]
 	})
