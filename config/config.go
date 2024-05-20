@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/rand"
+	"math/rand/v2"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -208,7 +208,7 @@ func New(fileName string, b *BuildInfo, server *httptest.Server) (*Config, error
 	c.Bt = bot
 	c.BuildInfo = b
 
-	c.RandSource = random.New(c.M.SecureRandom, 0)
+	c.RandSource = random.New(c.M.SecureRandom, 0, 0)
 	return c, nil
 }
 

@@ -3,34 +3,34 @@ package random
 import (
 	crand "crypto/rand"
 	"encoding/binary"
-	"math/rand"
+	"math/rand/v2"
 	"time"
 )
 
-// CryptoRandSource represents a source of uniformly-distributed random int64 values in the range [0, 1<<63).
+// CryptoRandSource represents a source of uniformly-distributed random uint64 values.
 type CryptoRandSource struct{}
 
-// Int63 returns a non-negative random 63-bit integer as an int64 from CryptoRandSource.
-func (CryptoRandSource) Int63() int64 {
+// Uint64 returns a non-negative random integer as an uint64 from CryptoRandSource.
+func (CryptoRandSource) Uint64() uint64 {
 	var b [8]byte
 	_, err := crand.Read(b[:])
 	if err != nil {
 		panic(err) // fail - can't continue
 	}
-	return int64(binary.LittleEndian.Uint64(b[:]) & (1<<63 - 1))
+
+	return binary.BigEndian.Uint64(b[:]) & (1<<63 - 1)
 }
 
-// Seed is a fake implementation for rand.Source interface from math/rand.
-func (CryptoRandSource) Seed(int64) {}
-
 // New returns a new rand.Source.
-func New(secure bool, seed int64) rand.Source {
+func New(secure bool, seed1, seed2 uint64) rand.Source {
 	if secure {
 		return CryptoRandSource{}
 	}
 
-	if seed == 0 {
-		seed = time.Now().UnixNano()
+	if seed1 == 0 && seed2 == 0 {
+		seed1 = uint64(time.Now().UnixNano())
+		seed2 = seed1
 	}
-	return rand.NewSource(seed)
+
+	return rand.NewPCG(seed1, seed2)
 }
