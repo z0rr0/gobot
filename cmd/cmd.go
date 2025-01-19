@@ -13,6 +13,7 @@ import (
 	"time"
 
 	botgolang "github.com/mail-ru-im/bot-golang"
+	"github.com/z0rr0/aoapi"
 
 	"github.com/z0rr0/gobot/config"
 	"github.com/z0rr0/gobot/db"
@@ -352,7 +353,7 @@ func GPT(ctx context.Context, e *Event) error {
 		return e.SendMessage("no arguments")
 	}
 
-	result, err := e.Cfg.G.Response(ctx, content)
+	result, err := e.Cfg.G.Response(ctx, content, aoapi.ModelGPT4oMini)
 	if err != nil {
 		return err
 	}
@@ -376,6 +377,30 @@ func YandexGPT(ctx context.Context, e *Event) error {
 	}
 
 	result, err := e.Cfg.Y.Response(ctx, content)
+	if err != nil {
+		return err
+	}
+
+	return e.SendMessage(result)
+}
+
+// DeepSeek generates text using DeepSeek API.
+func DeepSeek(ctx context.Context, e *Event) error {
+	if e.Cfg.DS.Client == nil {
+		return e.SendMessage("DeepSeek is not configured")
+	}
+
+	// use GPT as common AI flag
+	if !e.Chat.GPT {
+		return e.SendMessage("gpt is not allowed for this chat")
+	}
+
+	content := strings.TrimSpace(e.Arguments)
+	if content == "" {
+		return e.SendMessage("no arguments")
+	}
+
+	result, err := e.Cfg.DS.Response(ctx, content, aoapi.ModeDeepSeek)
 	if err != nil {
 		return err
 	}

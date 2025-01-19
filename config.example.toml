@@ -1,7 +1,7 @@
 [main]
 debug = true               # debug mode
 storage = "db.sqlite"      # database file
-timeout = 5                # db operation timeout (seconds)
+timeout = 120              # db operation timeout (seconds)
 workers = 2                # number of workers
 secure_random = false      # use secure random number generator
 timezone = "Europe/Moscow" # timezone
@@ -24,6 +24,14 @@ proxy = ""
 [yandex_gpt]
 api_key = "xxx"
 url = "https://llm.api.cloud.yandex.net/llm/v1alpha/chat"
+proxy = ""
+
+[deepseek]
+bearer = "xxx"
+organization = ""
+max_tokens = 1000
+temperature = 0.0
+url = "https://api.deepseek.com/v1/chat/completions"
 proxy = ""
 
 [log]

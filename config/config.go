@@ -38,7 +38,7 @@ type Bot struct {
 type Main struct {
 	Debug        bool   `toml:"debug"`
 	Storage      string `toml:"storage"`
-	Timeout      uint64 `toml:"timeout"`
+	Timeout      int64  `toml:"timeout"`
 	Workers      int    `toml:"workers"`
 	SecureRandom bool   `toml:"secure_random"`
 	Timezone     string `toml:"Timezone"`
@@ -73,13 +73,13 @@ type GPT struct {
 }
 
 // Response returns ChatGPT response.
-func (gpt *GPT) Response(ctx context.Context, content string) (string, error) {
+func (gpt *GPT) Response(ctx context.Context, content string, model aoapi.Model) (string, error) {
 	if gpt.Client == nil {
 		return "", fmt.Errorf("gpt client is not defined")
 	}
 
 	request := &aoapi.CompletionRequest{
-		Model:       aoapi.ModelGPT4oMini,
+		Model:       model,
 		Messages:    []aoapi.Message{{Role: aoapi.RoleUser, Content: content}},
 		MaxTokens:   gpt.MaxTokens,
 		Temperature: &gpt.Temperature,
@@ -131,6 +131,7 @@ type Config struct {
 	B          Bot       `toml:"bot"`
 	G          GPT       `toml:"gpt"`
 	Y          YandexGPT `toml:"yandex_gpt"`
+	DS         GPT       `toml:"deepseek"`
 	L          Log       `toml:"log"`
 	Bt         *botgolang.Bot
 	DB         *sql.DB
@@ -162,6 +163,10 @@ func New(fileName string, b *BuildInfo, server *httptest.Server) (*Config, error
 		return nil, fmt.Errorf("config parsing: %w", err)
 	}
 
+	if c.M.Timeout < 1 {
+		return nil, errors.New("timeout must be greater than 0")
+	}
+
 	if c.M.Workers < 1 {
 		return nil, errors.New("number of workers must be greater than 0")
 	}
@@ -172,6 +177,10 @@ func New(fileName string, b *BuildInfo, server *httptest.Server) (*Config, error
 
 	if err = c.initGPT(); err != nil {
 		return nil, fmt.Errorf("GPT init: %w", err)
+	}
+
+	if err = c.initDeepSeek(); err != nil {
+		return nil, fmt.Errorf("DeepSeek init: %w", err)
 	}
 
 	if err = c.initYandexGPT(); err != nil {
@@ -306,6 +315,21 @@ func (c *Config) initYandexGPT() error {
 	}
 
 	c.Y.Client = client
+	return nil
+}
+
+// initDeepSeek initializes initDeepSeek client.
+func (c *Config) initDeepSeek() error {
+	if c.DS.Client != nil {
+		return nil
+	}
+
+	client, err := gptInit(c.DS.Bearer, c.DS.URL, c.DS.Proxy)
+	if err != nil {
+		return err
+	}
+
+	c.DS.Client = client
 	return nil
 }
 

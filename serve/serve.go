@@ -35,6 +35,7 @@ var (
 		"/vacation": cmd.Vacation,
 		"/gpt":      cmd.GPT,
 		"/ygpt":     cmd.YandexGPT,
+		"/ds":       cmd.DeepSeek,
 		"/skip":     cmd.Skip,
 		"/nodays":   cmd.NoDays,
 	}
@@ -51,6 +52,7 @@ var (
 		"/vacation": true,
 		"/gpt":      true,
 		"/ygpt":     true,
+		"/ds":       true,
 		"/skip":     true,
 		"/nodays":   true,
 	}

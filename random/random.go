@@ -28,7 +28,7 @@ func New(secure bool, seed1, seed2 uint64) rand.Source {
 	}
 
 	if seed1 == 0 && seed2 == 0 {
-		seed1 = uint64(time.Now().UnixNano())
+		seed1 = uint64(time.Now().UnixNano()) // #nosec: G115
 		seed2 = seed1
 	}
 
