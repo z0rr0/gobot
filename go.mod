@@ -6,7 +6,7 @@ require (
 	github.com/mail-ru-im/bot-golang v0.0.0-20240409115736-4d4de6bc690e
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/pelletier/go-toml/v2 v2.2.3
-	github.com/z0rr0/aoapi v1.7.5
+	github.com/z0rr0/aoapi v1.8.0
 	github.com/z0rr0/tgtpgybot v0.1.3
 )
 

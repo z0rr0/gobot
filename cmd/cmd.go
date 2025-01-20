@@ -400,7 +400,7 @@ func DeepSeek(ctx context.Context, e *Event) error {
 		return e.SendMessage("no arguments")
 	}
 
-	result, err := e.Cfg.DS.Response(ctx, content, aoapi.ModeDeepSeek)
+	result, err := e.Cfg.DS.Response(ctx, content, aoapi.ModelDeepSeekChat)
 	if err != nil {
 		return err
 	}
